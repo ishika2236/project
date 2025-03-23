@@ -1,10 +1,10 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../model/user');
-// const { getFaceEmbedding } = require('../utils/faceRecognition');
+const Embedding = require('../model/embedding'); 
 const upload = require('../utils/multerConfig');
 
-// Login controller
+// Login controller remains unchanged
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -45,9 +45,8 @@ const login = async (req, res) => {
     }
 };
 
-// Signup controller
+// Updated Signup controller
 const signup = async (req, res) => {
-    // console.log(req.body);
     try {
         upload.single('profileImage')(req, res, async (err) => {
             if (err) {
@@ -68,12 +67,18 @@ const signup = async (req, res) => {
                 group,
                 employeeId,
                 dateOfBirth,
-                gender
+                gender,
+                faceEmbedding
             } = req.body;
             console.log(req.body);
+            
+            // Parse face embedding data
+            const parsedEmbedding = JSON.parse(faceEmbedding);
+            
             if (!password) {
                 return res.status(400).json({ message: 'Password is required' });
             }
+            
             // Check if user already exists
             const existingUser = await User.findOne({ email });
             if (existingUser) {
@@ -84,13 +89,7 @@ const signup = async (req, res) => {
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
 
-            // Get face embedding if profile image is uploaded
-            let faceEmbedding = null;
-            // if (req.file) {
-            //     faceEmbedding = await getFaceEmbedding(req.file.path);
-            // }
-
-            // Create new user
+            // Create new user without embedding reference first
             const user = new User({
                 firstName,
                 lastName,
@@ -107,11 +106,27 @@ const signup = async (req, res) => {
                 dateOfBirth,
                 gender: gender ? gender.toLowerCase() : "",  
                 profileImage: req.file ? req.file.path : null,
-                faceEmbedding
+                
             });
 
+            // Save the user to get an _id
             await user.save();
-
+            
+            // Now create the embedding document with reference to the user
+            const embeddingDoc = new Embedding({
+                user: user._id,
+                embedding: parsedEmbedding,
+                isActive: true
+            });
+            
+            // Save the embedding document
+            await embeddingDoc.save();
+            
+            // Update the user with the reference to the embedding
+            user.faceEmbedding = embeddingDoc._id;
+            await user.save();
+            console.log(user, embeddingDoc);
+            
             // Generate JWT token
             const token = jwt.sign(
                 { userId: user._id, role: user.role },

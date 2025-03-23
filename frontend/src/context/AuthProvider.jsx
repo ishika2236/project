@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { createNodejsEnv } from 'face-api.js/build/commonjs/env/createNodejsEnv';
 
 // Create the auth context
 const AuthContext = createContext();
@@ -41,51 +42,18 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  // Register new user
-  // Register new user
-const register = async (formData) => {
+  const register = async (formData) => {
     setLoading(true);
     try {
-      const formDataToSend = new FormData();
+        formData.faceEmbedding = JSON.stringify(formData.faceEmbedding);
       
-      // Handle primitive values and files directly
-      for (const key in formData) {
-        // Skip null or undefined values
-        if (formData[key] === null || formData[key] === undefined) continue;
-        
-        // Handle files
-        if (formData[key] instanceof File) {
-          formDataToSend.append(key, formData[key]);
-          continue;
-        }
-        
-        // Handle objects (like addresses)
-        if (typeof formData[key] === 'object' && !(formData[key] instanceof File)) {
-          formDataToSend.append(key, JSON.stringify(formData[key]));
-        } else {
-          // Handle primitive values
-          formDataToSend.append(key, formData[key]);
-        }
-      }
-      
-      // Log for debugging
-      console.log("Form data entries:");
-      for (let pair of formDataToSend.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-      }
-      
-      // Important: When sending FormData, don't set Content-Type header
-      // Axios will automatically set the correct boundary
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/auth/signup`,
-        formDataToSend,
-        {
-          headers: {
-            // Let browser set the content type with proper boundary
-            // 'Content-Type': 'multipart/form-data' - DON'T SET THIS
-          }
-        }
-      );const { token, user } = response.data;
+        formData
+        // No Content-Type header - let Axios set it automatically with the correct boundary
+      );
+      
+      const { token, user } = response.data;
       localStorage.setItem('authToken', token);
       
       setUser(user);
@@ -94,8 +62,12 @@ const register = async (formData) => {
       toast.success('Registration successful!');
       return { success: true, data: response.data };
     } catch (error) {
+      console.error('Registration error:', error);
       toast.error(error.response?.data?.message || 'Registration failed. Please try again.');
-      return { success: false, error: error.response?.data || error.message };
+      return { 
+        success: false, 
+        error: error.response?.data || error.message 
+      };
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const userSchema = new mongoose.Schema({
     firstName: {
         type: String,
@@ -77,8 +78,8 @@ const userSchema = new mongoose.Schema({
         default: null
     },
     faceEmbedding: {
-        type: [Number], // Array to store face embedding vector
-        default: null
+       type: mongoose.Schema.Types.ObjectId,
+        ref: 'Embedding'
     },
     createdAt: {
         type: Date,

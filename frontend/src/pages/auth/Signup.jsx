@@ -26,14 +26,27 @@ const Signup = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
+  const [faceEmbedding, setFaceEmbedding] = useState(null);
   
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', email: '', password: '', confirmPassword: '',
-    mobile: '', dateOfBirth: '', gender: '', role: '',
+    firstName: '', 
+    lastName: '', 
+    email: '', 
+    password: '', 
+    confirmPassword: '',
+    mobile: '', 
+    dateOfBirth: '', 
+    gender: '', 
+    role: '',
     permanentAddress: { street: '', city: '', state: '', pincode: '', country: '' },
     currentAddress: { street: '', city: '', state: '', pincode: '', country: '' },
-    rollNumber: '', admissionYear: '', group: '', employeeId: ''
+    // Student-specific fields
+    rollNumber: '', 
+    admissionYear: '', 
+    group: '', 
+    // Teacher-specific fields
+    employeeId: '',
+    department: ''
   });
   
   const [validation, setValidation] = useState({
@@ -70,34 +83,18 @@ const Signup = () => {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    // Check file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please upload a valid image file (JPEG, PNG, GIF)');
-      return;
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setProfileImage(file);
+      setProfileImagePreview(URL.createObjectURL(file));
     }
-    
-    // Check file size (limit to 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      toast.error('Image size should be less than 5MB');
-      return;
-    }
-    
-    setProfileImage(file);
-    
-    // Create a preview URL
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfileImagePreview(reader.result);
-    };
-    reader.onerror = () => {
-      toast.error('Error reading file');
-    };
-    reader.readAsDataURL(file);
+  };
+
+  // Handler for camera-captured images
+  const handleImageCapture = (imageFile, embedding) => {
+    setProfileImage(imageFile);
+    setProfileImagePreview(imageFile ? URL.createObjectURL(imageFile) : null);
+    setFaceEmbedding(embedding);
   };
 
   const handleRoleSelect = (selectedRole) => {
@@ -130,11 +127,26 @@ const Signup = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Include profile image in form data
-    const registrationData = {
-      ...formData,
-      profileImage
-    };
+    // Create form data including profile image and face embedding
+    const registrationData = new FormData();
+    
+    // Add all regular form fields
+    Object.entries(formData).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null && !(value instanceof File)) {
+        registrationData.append(key, JSON.stringify(value));
+      } else {
+        registrationData.append(key, value);
+      }
+    });
+    
+    // Add profile image and face embedding
+    if (profileImage) {
+      registrationData.append('profileImage', profileImage);
+    }
+    
+    if (faceEmbedding) {
+      registrationData.append('faceEmbedding', JSON.stringify(faceEmbedding));
+    }
     
     try {
       const result = await register(registrationData);
@@ -190,20 +202,18 @@ const Signup = () => {
       case 3:
         return (
           <RoleSpecificInfoStep 
-            role={role}
             formData={formData}
             handleChange={handleChange}
-            profileImage={profileImage}
-            profileImagePreview={profileImagePreview}
             handleImageChange={handleImageChange}
-            fileInputRef={fileInputRef}
+            profileImagePreview={profileImagePreview}
             setProfileImage={setProfileImage}
             setProfileImagePreview={setProfileImagePreview}
+            role={role}
             prevStep={prevStep}
             handleSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            getThemedClass={getThemedClass}
             theme={theme}
+            setFaceEmbedding={setFaceEmbedding}
           />
         );
       
