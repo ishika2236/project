@@ -125,7 +125,7 @@ const Signup = () => {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsSubmitting((value) => true);
     
     // Create form data including profile image and face embedding
     const registrationData = new FormData();
@@ -153,7 +153,7 @@ const Signup = () => {
       if (result.success) {
         // Redirect to login after successful registration
         setTimeout(() => {
-          navigate('/login');
+          navigate('/dashboard');
         }, 2000);
       }
     } finally {

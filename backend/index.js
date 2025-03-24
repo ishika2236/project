@@ -6,6 +6,8 @@ const cors = require('cors');
 
 const app = express();
 const authRoutes = require('./routes/auth');
+const faceRecognitionRoutes = require('./routes/faceRecognition');
+
 
 const server = http.createServer(app);
 
@@ -19,15 +21,10 @@ app.use(cors({
     credentials: true,
 }));
 
-app.use((req, res, next) => {
-    console.log("Received Request Body:", req.body);
-    next();
-});
+
 app.use('/api/auth', authRoutes);
-// Basic route
-app.get('/', (req, res) => {
-    res.send('Server is running');
-});
+app.use('/api/face-recognition', faceRecognitionRoutes);
+
 
 // Connect to MongoDB
 connectDB();

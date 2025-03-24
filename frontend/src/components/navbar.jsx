@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { FaUser, FaBell, FaSignOutAlt, FaCog } from 'react-icons/fa';
 import { BsMoon, BsSun } from 'react-icons/bs';
-import './index.css';
-import { useTheme } from '../theme';
+import '../index.css';
+// import { useTheme } from '../theme';
+import { useTheme } from '../context/ThemeProvider';
 
 const Navbar = ({ 
   userName = 'User', 
