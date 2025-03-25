@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Import contexts
 import { useAuth } from './../../context/AuthProvider';
@@ -151,11 +153,44 @@ const Signup = () => {
     try {
       const result = await register(registrationData);
       if (result.success) {
-        // Redirect to login after successful registration
+        // Show success toast
+        toast.success('Registration Successful! Redirecting to Dashboard...', {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+
+        // Redirect to dashboard after toast
         setTimeout(() => {
           navigate('/dashboard');
         }, 2000);
+      } else {
+        // Show error toast if registration fails
+        toast.error(result.message || 'Registration Failed. Please try again.', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
       }
+    } catch (error) {
+      // Show error toast for network or unexpected errors
+      toast.error('An error occurred. Please try again.', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -224,6 +259,20 @@ const Signup = () => {
 
   return (
     <div className={`relative flex w-screen h-screen ${themeConfig.background}`}>
+      {/* Toast Container */}
+      <ToastContainer 
+        theme={theme === 'dark' ? 'dark' : 'light'}
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+
       <BackgroundDecorations theme={theme} />
       
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />

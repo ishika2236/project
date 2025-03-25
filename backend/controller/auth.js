@@ -152,5 +152,38 @@ const signup = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+const me = async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ message: 'Authorization token missing or invalid' });
+        }
 
-module.exports = { login, signup };
+        const token = authHeader.split(' ')[1];
+    
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (error) {
+            return res.status(401).json({ message: 'Invalid or expired token' });
+        }
+
+        if (!decoded || !decoded.userId) {
+            return res.status(401).json({ message: 'Invalid token payload' });
+        }
+
+        // Fetch the user without returning password
+        const user = await User.findById(decoded.userId).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ user });
+    } catch (error) {
+        console.error('Me error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+module.exports = { login, signup, me };

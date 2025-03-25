@@ -5,7 +5,7 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify'; 
 import DotBackground from '../components/BackgroundDecorations';
 import BackgroundDecorations from '../components/BackgroundDecorations';
-
+import { useAuth } from '../context/AuthProvider';
 // Updated color palette with provided hex codes
 const colors = {
   // Primary colors
@@ -43,25 +43,11 @@ const CaptureImage = () => {
   const [matchResult, setMatchResult] = useState(null);
   const [isCapturing, setIsCapturing] = useState(true);
   const [capturedFace, setCapturedFace] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // const [isAuthenticated, setIsAuthenticated] = useState(false);\
+  const {isAuthenticated} = useAuth();
+
   const navigate = useNavigate();
   
-  // Check if user is authenticated
-  useEffect(() => {
-    // This is a simplified check - replace with your actual auth check
-    const token = localStorage.getItem('authToken');
-    
-    if (!token) {
-      setIsAuthenticated(false);
-      toast.error('Please sign in first to use facial recognition');
-      // Redirect to signup page after a short delay
-      setTimeout(() => {
-        navigate('/signup');
-      }, 3000);
-    } else {
-      setIsAuthenticated(true);
-    }
-  }, [navigate]);
   
   const handleFaceEmbeddingGenerated = async (imageFile, embedding, faceImageUrl) => {
     // Only process if we're still in capturing mode

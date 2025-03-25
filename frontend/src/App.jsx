@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Dashboard from './pages/dashboard';
 import CaptureImage from './pages/CaptureImage';
 import Login from './pages/auth/Login';
+import ProtectedRoute from './ProtectedRoute';
 function App() {
   
 
@@ -15,8 +16,8 @@ function App() {
           <Route path="/" element={<Navigate to="/signup" replace />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/capture-image" element={<CaptureImage />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/capture-image" element={<ProtectedRoute><CaptureImage /></ProtectedRoute>} />
         </Routes>
       {/* </Router> */}
       {/* <Signup /> */}

@@ -187,14 +187,14 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
     function runDetection() {
       // console.log("Starting continuous face detection");
       
-      // Custom drawing options
+      
       const drawOptions = {
         // Custom detection box options
-        boxColor: palette.zomp,
+        boxColor: 'rgba(42, 41, 40, 0.5)',
         boxLineWidth: 2,
         
         // Custom landmarks options
-        landmarksColor: palette.powderBlue,
+        // landmarksColor: palette.deftBlue,
         pointSize: 2
       };
       
@@ -242,7 +242,8 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
             resizedDetections.forEach(detection => {
               // Draw face box with custom color
               const { box } = detection.detection;
-              ctx.strokeStyle = drawOptions.boxColor;
+              ctx.fillStyle = 'rgba(242, 157, 61, 0.5)';
+              // ctx.strokeStyle = palette.zomp;
               ctx.lineWidth = drawOptions.boxLineWidth;
               ctx.strokeRect(box.x, box.y, box.width, box.height);
               
@@ -266,10 +267,10 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
           if (detections.length > 0) {
             faceDetectionCountRef.current += 1;
             
-            // Update UI to show face detected
+            
             const { box } = detections[0].detection;
             // Background for text
-            ctx.fillStyle = palette.raisinBlack + 'CC'; // Adding transparency
+            ctx.fillStyle = palette.raisinBlack + 'CC'; 
             ctx.fillRect(box.x, box.y + box.height + 5, 200, 24);
             // Progress bar background
             ctx.fillStyle = palette.delftBlue + '99';
@@ -343,7 +344,7 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
         return;
       }
       
-      console.log("Face detected and processed for embedding");
+      // console.log("Face detected and processed for embedding");
       
       // Capture the face region from the last detection
       let faceImageUrl = null;
@@ -358,7 +359,7 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
         faceCtx.drawImage(
           videoRef.current,
           box.x, box.y, box.width, box.height,
-          0, 0, box.width, box.height
+          0, 0, box.width, box.height,
         );
         
         // Convert canvas to image URL
@@ -370,11 +371,11 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
         if (!blob) {
           setError("Failed to create image blob");
           setProcessingCapture(false);
-          setCaptureComplete(false); // Reset if failed
+          setCaptureComplete(false); 
           return;
         }
         
-        // Create file from blob
+       
         const imageFile = new File([blob], `face_auth_${Date.now()}.png`, { type: 'image/png' });
         
         // Extract the face embedding
@@ -382,7 +383,7 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
         
         console.log("Face embedding generated successfully");
         
-        // Call the parent component's handler with image file, embedding, and face image URL
+        
         if (onEmbeddingGenerated) {
           onEmbeddingGenerated(imageFile, embedding, faceImageUrl);
         }

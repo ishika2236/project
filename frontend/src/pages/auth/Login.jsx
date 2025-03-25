@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthProvider';
+import { ToastContainer, toast } from 'react-toastify';
+// import 'react-toastify/dist/ReactToastify.css';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -9,6 +12,8 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
+  
   // Theme colors
   const colors = {
     background: '#0a0e1a',
@@ -59,26 +64,49 @@ const LoginPage = () => {
     
     try {
       setLoading(true);
+      const response = await login({ email, password });
       
-      // Replace with your API endpoint
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-        email,
-        password
+      // Show success toast
+      toast.success('Login successful!', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
       });
       
-      // Handle successful login
-      if (response.data && response.data.token) {
-        // Save token to localStorage
-        localStorage.setItem('authToken', response.data.token);
-        
-        navigate('/dashboard');
-      }
+      // Navigate to dashboard or home page after successful login
+      navigate('/dashboard');
     } catch (err) {
       // Handle login error
       if (err.response && err.response.data) {
         setError(err.response.data.message || 'Login failed. Please try again.');
+        
+        // Show error toast
+        toast.error(err.response.data.message || 'Login failed. Please try again.', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
       } else {
         setError('Network error. Please check your connection.');
+        
+        // Show network error toast
+        toast.error('Network error. Please check your connection.', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
       }
       console.error('Login error:', err);
     } finally {
@@ -99,6 +127,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: colors.background }}>
+      <ToastContainer />
       <DotPattern />
       
       <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center relative z-10">
@@ -235,7 +264,7 @@ const LoginPage = () => {
           </div>
           
           <p className="text-center text-sm" style={{ color: colors.textMedium }}>
-            Don't have an account? <a href="#" className="font-medium" style={{ color: colors.primary }}>Sign up</a>
+            Don't have an account? <Link to="/signup" className="font-medium" style={{ color: colors.primary }}>Sign up</Link>
           </p>
         </div>
       </div>

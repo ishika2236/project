@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { createNodejsEnv } from 'face-api.js/build/commonjs/env/createNodejsEnv';
-
+import { useNavigate } from 'react-router-dom';
 // Create the auth context
 const AuthContext = createContext();
 
@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
 
   // Check if user is logged in on mount
   useEffect(() => {
@@ -30,10 +31,13 @@ export const AuthProvider = ({ children }) => {
             }
           );
           setUser(response.data.user);
+          localStorage.setItem('authToken', response.data.token);
+          navigate('/dashboard');
           setIsAuthenticated(true);
         } catch (error) {
           console.error('Auth validation error:', error);
           localStorage.removeItem('authToken');
+          navigate('/login');
         }
       }
       setLoading(false);
@@ -84,7 +88,7 @@ export const AuthProvider = ({ children }) => {
       
       const { token, user } = response.data;
       localStorage.setItem('authToken', token);
-      
+      navigate('/dashboard');
       setUser(user);
       setIsAuthenticated(true);
       toast.success('Login successful!');
