@@ -75,7 +75,7 @@ const embeddingController = {
       const bestMatch = similarities[0];
       
       // Configure threshold as needed for your application
-      const SIMILARITY_THRESHOLD = 0.2;
+      const SIMILARITY_THRESHOLD = 0.95;
       
       if (bestMatch.similarity < SIMILARITY_THRESHOLD) {
         console.log(bestMatch.similarity)

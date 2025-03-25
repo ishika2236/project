@@ -54,14 +54,14 @@ export const ThemeProvider = ({ children }) => {
 
   // Theme config object with common color mappings
   const themeConfig = {
-    background: theme === 'dark' ? 'bg-slate-900' : 'bg-white',
-    text: theme === 'dark' ? 'text-white' : 'text-blue-800',
-    secondaryText: theme === 'dark' ? 'text-gray-300' : 'text-blue-600',
-    card: theme === 'dark' ? 'bg-slate-800' : 'bg-white border border-gray-200',
-    input: theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-white text-gray-900 border-gray-300',
+    background: theme === 'dark' ? 'bg-slate-900' : 'bg-[#f1faee]', // Honeydew
+    text: theme === 'dark' ? 'text-white' : 'text-[#1d3557]', // Berkeley Blue
+    secondaryText: theme === 'dark' ? 'text-gray-300' : 'text-[#457b9d]', // Cerulean
+    card: theme === 'dark' ? 'bg-slate-800' : 'bg-[#f1faee] border border-[#a8dadc]', // Honeydew with Non Photo Blue border
+    input: theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-white text-[#1d3557] border-[#a8dadc]', // Berkeley Blue text, Non Photo Blue border
     button: {
-      primary: theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600',
-      secondary: theme === 'dark' ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-200 hover:bg-gray-300'
+      primary: theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#e63946] hover:bg-[#eb5f6b] text-white', // Red Pantone
+      secondary: theme === 'dark' ? 'bg-gray-600 hover:bg-gray-700' : 'bg-[#a8dadc] hover:bg-[#b9e2e3] text-[#1d3557]' // Non Photo Blue
     }
   };
 

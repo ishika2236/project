@@ -9,7 +9,7 @@ const Sidebar = ({ role }) => {
 
   const teacherMenu = [
     { id: "courses", label: "Courses", icon: <FaBookOpen />, link: "/teacher/courses" },
-    { id: "attendance", label: "Mark Attendance", icon: <FaClipboardList />, link: "/teacher/attendance" },
+    { id: "attendance", label: "Mark Attendance", icon: <FaClipboardList />, link: "/capture-image" },
     { id: "requests", label: "Requests", icon: <FaUserPlus />, link: "/teacher/requests" },
     { id: "reports", label: "Reports", icon: <FaChartBar />, link: "/teacher/reports" },
     { id: "notes", label: "Notes", icon: <FaStickyNote />, link: "/teacher/notes" },
@@ -18,7 +18,7 @@ const Sidebar = ({ role }) => {
 
   const studentMenu = [
     { id: "courses", label: "Courses", icon: <FaBookOpen />, link: "/student/courses" },
-    { id: "attendance", label: "Attendance", icon: <FaClipboardList />, link: "/student/attendance" },
+    { id: "attendance", label: "Attendance", icon: <FaClipboardList />, link: "/capture-image" },
     { id: "enroll", label: "Enroll New Course", icon: <FaPlusCircle />, link: "/student/enroll" },
   ];
 

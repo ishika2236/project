@@ -185,7 +185,7 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
     
     // Run continuous face detection
     function runDetection() {
-      console.log("Starting continuous face detection");
+      // console.log("Starting continuous face detection");
       
       // Custom drawing options
       const drawOptions = {
@@ -339,7 +339,7 @@ const AutoFaceDetector = ({ onEmbeddingGenerated, autoCapture = true, colors }) 
       if (fullFaceDescriptions.length === 0) {
         setError("No face detected. Please ensure your face is clearly visible.");
         setProcessingCapture(false);
-        setCaptureComplete(false); // Reset if failed
+        setCaptureComplete(false); 
         return;
       }
       
