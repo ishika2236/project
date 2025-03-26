@@ -1,6 +1,7 @@
 import React from "react";
-import Sidebar from "../components/sidebar";
-import Navbar from "../components/navbar";
+// import Sidebar from "./Sidebar";
+import Navbar from "./Navbar";
+// import StudentDashboard from "../pages/student/StudentDashboard";
 
 const DashboardLayout = ({ children, role }) => {
   return (
@@ -8,7 +9,7 @@ const DashboardLayout = ({ children, role }) => {
       <Sidebar role={role} />
       <div className="flex flex-col w-full">
         <Navbar username="John Doe" />
-        <div className="p-6">{children}</div>
+        <div className="p-6"> {children} </div>
       </div>
     </div>
   );

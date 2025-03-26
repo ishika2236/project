@@ -47,11 +47,8 @@ const LoginPage = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    
-    // Reset error
     setError('');
-    
-    // Form validation
+
     if (!email.trim()) {
       setError('Email is required');
       return;
@@ -65,8 +62,7 @@ const LoginPage = () => {
     try {
       setLoading(true);
       const response = await login({ email, password });
-      
-      // Show success toast
+      const role = response.data.role; // Assuming the role is returned from the API
       toast.success('Login successful!', {
         position: "top-right",
         autoClose: 3000,
@@ -76,15 +72,13 @@ const LoginPage = () => {
         draggable: true,
         progress: undefined,
       });
+      console.log(response.data);
       
-      // Navigate to dashboard or home page after successful login
-      navigate('/dashboard');
+      // Navigate based on user role
+      navigate(`/${role}/dashboard`);
     } catch (err) {
-      // Handle login error
       if (err.response && err.response.data) {
         setError(err.response.data.message || 'Login failed. Please try again.');
-        
-        // Show error toast
         toast.error(err.response.data.message || 'Login failed. Please try again.', {
           position: "top-right",
           autoClose: 3000,
@@ -96,8 +90,6 @@ const LoginPage = () => {
         });
       } else {
         setError('Network error. Please check your connection.');
-        
-        // Show network error toast
         toast.error('Network error. Please check your connection.', {
           position: "top-right",
           autoClose: 3000,

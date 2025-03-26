@@ -164,10 +164,15 @@ const Signup = () => {
           progress: undefined,
         });
 
+
         // Redirect to dashboard after toast
         setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
+          const role = formData.role;
+          if(role === "student")
+            navigate('/student/dashboard');
+          else
+            navigate('/teacher/dashboard');
+        }, 2500);
       } else {
         // Show error toast if registration fails
         toast.error(result.message || 'Registration Failed. Please try again.', {
