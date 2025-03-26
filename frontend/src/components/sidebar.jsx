@@ -75,7 +75,7 @@ const Sidebar = ({ role }) => {
   const menuItems = role === "teacher" ? teacherMenu : studentMenu;
 
   return (
-    <div className={`h-screen transition-all duration-300 ${collapsed ? "w-16" : "w-60"} flex flex-col ${isDark ? themeConfig.card : themeConfig.card}`}>
+    <div className={`h-screen transition-all duration-300 z-100 ${collapsed ? "w-16" : "w-60"} flex flex-col ${isDark ? themeConfig.card : themeConfig.card}`}>
       {/* Sidebar Toggle Button */}
       <div className="p-4 flex justify-between items-center">
         <button onClick={toggleSidebar} className={`text-xl focus:outline-none ${isDark ? themeConfig.text : themeConfig.text}`}>

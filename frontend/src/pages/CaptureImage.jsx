@@ -6,6 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import DotBackground from '../components/BackgroundDecorations';
 import BackgroundDecorations from '../components/BackgroundDecorations';
 import { useAuth } from '../context/AuthProvider';
+import Sidebar from '../components/Sidebar';
 // Updated color palette with provided hex codes
 const colors = {
   // Primary colors
@@ -173,11 +174,16 @@ const CaptureImage = () => {
 
   return (
     <div className="h-screen" style={{ backgroundColor: colors.darkNavy }}>
-      {/* Add the dot background */}
-      <DotBackground colors={colors} density={0.6} />
+    
+      <div className="flex">
+        <div className="z-10">
+          <Sidebar/>
+        </div>
+        <div className="h-screen w-full flex items-center justify-center">
+        <DotBackground colors={colors} density={0.6} />
       
       <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
-      <div className="max-w-6xl mx-auto p-2 relative z-10">
+      <div className="max-w-4xl w-full  mx-auto p-2 relative z-10">
         <div className="text-center mb-2 pt-2">
           <h1 className="text-2xl font-bold" style={{ color: colors.textLight }}>
             Face Recognition
@@ -187,10 +193,10 @@ const CaptureImage = () => {
           </p>
         </div>
 
-        {/* Conditional rendering based on status - show one container at a time */}
+       
         {(status === 'waiting' || status === 'detecting' || status === 'error') ? (
-          /* Camera/Face Detection Container */
-          <div className="max-w-xl mx-auto rounded-lg shadow-xl p-3" style={{ backgroundColor: colors.tonalDark }}>
+          
+          <div className="max-w-xl  mx-auto  rounded-lg shadow-xl p-3" style={{ backgroundColor: colors.tonalDark }}>
             {/* Status indicator */}
             <div className="mb-3 p-2 rounded-lg text-center" 
               style={{ 
@@ -339,12 +345,11 @@ const CaptureImage = () => {
           </div>
         )}
         
-        <div className="text-center mt-2">
-          <p style={{ color: colors.textMedium, fontSize: '0.7rem' }}>
-            Secure facial authentication system
-          </p>
+        
+      </div>
         </div>
       </div>
+      
     </div>
   );
 };
