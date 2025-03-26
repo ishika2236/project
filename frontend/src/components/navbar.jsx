@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthProvider";
 
 const Navbar = ({
   userName = "User",
-  userAvatar = null,
+  userAvatar = "",
   onProfileClick,
   onSettingsClick,
   onLogoutClick,
@@ -22,12 +22,13 @@ const Navbar = ({
     if (showNotifications) setShowNotifications(false);
   };
 
+
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
     if (showDropdown) setShowDropdown(false);
   };
-  const {logout } = useAuth();
-
+  const {user, logout } = useAuth();
+  console.log('user in navbar: ', user);
   // Sample notifications
   const notifications = [
     { id: 1, text: "New attendance report available", time: "2 hours ago", read: false },
@@ -91,8 +92,8 @@ const Navbar = ({
         {/* Profile Dropdown */}
         <div className="relative">
           <button onClick={toggleDropdown} className="flex items-center gap-2 p-2">
-            {userAvatar ? (
-              <img src={userAvatar} alt={userName} className="w-8 h-8 rounded-full" />
+            {user ? (
+              <img src={user.profileImage} alt={userName} className="w-8 h-8 rounded-full" />
             ) : (
               <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center justify-center">
                 <FaUser />

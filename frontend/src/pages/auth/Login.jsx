@@ -62,7 +62,7 @@ const LoginPage = () => {
     try {
       setLoading(true);
       const response = await login({ email, password });
-      const role = response.data.role; // Assuming the role is returned from the API
+      // const role = response.data.role; 
       toast.success('Login successful!', {
         position: "top-right",
         autoClose: 3000,
@@ -75,7 +75,7 @@ const LoginPage = () => {
       console.log(response.data);
       
       // Navigate based on user role
-      navigate(`/${role}/dashboard`);
+      // navigate(`/${role}/dashboard`);
     } catch (err) {
       if (err.response && err.response.data) {
         setError(err.response.data.message || 'Login failed. Please try again.');

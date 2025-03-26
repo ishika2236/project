@@ -142,7 +142,8 @@ const signup = async (req, res) => {
                     firstName: user.firstName,
                     lastName: user.lastName,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    profileImage: user.profileImage 
                 }
             });
         });
@@ -177,7 +178,7 @@ const me = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-
+        // console.log(user);
         res.status(200).json({ user });
     } catch (error) {
         console.error('Me error:', error);
