@@ -38,19 +38,19 @@ const StudentDashboard = () => {
   ];
 
   return (
-    <div className={`flex ${isDark ? 'dark:bg-gray-900' : 'bg-gray-100'}`}>
+    <div className={`flex ${isDark ? 'dark:bg-gray-950' : 'bg-gray-100'}`}>
       {/* Sidebar */}
       <Sidebar role="student" />
 
       {/* Main Dashboard Section */}
-      <div className={`flex-1 min-h-screen ${isDark ? 'dark:bg-gray-900' : 'bg-gray-100'} p-6`}>
+      <div className={`flex-1 min-h-screen ${isDark ? 'dark:bg-gray-950' : 'bg-gray-100'} p-6`}>
         {/* Navbar */}
         <Navbar userName="Student" />
 
         {/* Dashboard Content */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
           {/* Enrolled Courses */}
-          <div className={`p-6 rounded-lg shadow-md ${isDark ? 'dark:bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-lg shadow-md ${isDark ? 'dark:bg-gray-900' : 'bg-white'}`}>
             <h2 className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               <Book className="text-blue-500" /> Enrolled Courses
             </h2>
@@ -64,7 +64,7 @@ const StudentDashboard = () => {
           </div>
 
           {/* Attendance Status */}
-          <div className={`p-6 rounded-lg shadow-md ${isDark ? 'dark:bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-lg shadow-md ${isDark ? 'dark:bg-gray-900' : 'bg-white'}`}>
             <h2 className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               <ClipboardList className="text-green-500" /> Attendance Status
             </h2>
@@ -74,7 +74,7 @@ const StudentDashboard = () => {
           </div>
 
           {/* Upcoming Classes */}
-          <div className={`p-6 rounded-lg shadow-md ${isDark ? 'dark:bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-lg shadow-md ${isDark ? 'dark:bg-gray-900' : 'bg-white'}`}>
             <h2 className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               <Calendar className="text-yellow-500" /> Upcoming Classes
             </h2>
@@ -83,7 +83,7 @@ const StudentDashboard = () => {
           </div>
 
           {/* Join New Course */}
-          <div className={`p-6 rounded-lg shadow-md flex items-center justify-between ${isDark ? 'dark:bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-lg shadow-md flex items-center justify-between ${isDark ? 'dark:bg-gray-900' : 'bg-white'}`}>
             <h2 className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               <FilePlus className="text-red-500" /> Join New Course
             </h2>
@@ -91,7 +91,7 @@ const StudentDashboard = () => {
           </div>
 
           {/* Pie Chart */}
-          <div className={`p-6 rounded-lg shadow-md col-span-2 lg:col-span-1 ${isDark ? 'dark:bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-lg shadow-md col-span-2 lg:col-span-1 ${isDark ? 'dark:bg-gray-900' : 'bg-white'}`}>
             <h2 className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               <Activity className="text-purple-500" /> Course Attendance Distribution
             </h2>
@@ -99,13 +99,13 @@ const StudentDashboard = () => {
           </div>
 
           {/* Recent Activities */}
-          <div className={`p-6 rounded-lg shadow-md col-span-2 lg:col-span-1 ${isDark ? 'dark:bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-lg shadow-md col-span-2 lg:col-span-1 ${isDark ? 'dark:bg-gray-900' : 'bg-white'}`}>
             <h2 className={`text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               <Activity className="text-teal-500" /> Recent Activity
             </h2>
             <ul className="mt-4 space-y-3">
               {recentActivities.map((activity) => (
-                <li key={activity.id} className={`p-3 rounded-lg ${isDark ? 'bg-gray-700' : 'bg-gray-100'} text-${isDark ? 'white' : 'gray-900'}`}>
+                <li key={activity.id} className={`p-3 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-gray-100'} text-${isDark ? 'white' : 'gray-900'}`}>
                   <span className="font-bold">{activity.action}</span> – <span className="text-gray-500">{activity.time}</span>
                 </li>
               ))}
