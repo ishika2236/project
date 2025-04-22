@@ -62,20 +62,31 @@ const LoginPage = () => {
     try {
       setLoading(true);
       const response = await login({ email, password });
-      // const role = response.data.role; 
-      toast.success('Login successful!', {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      console.log(response.data);
-      
-      // Navigate based on user role
-      // navigate(`/${role}/dashboard`);
+      if(response.success)
+      {
+        toast.success('Login successful!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+
+      }
+      else{
+        toast.error('Username and Password does not match',{
+          position: 'top-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+
+        })
+      }
     } catch (err) {
       if (err.response && err.response.data) {
         setError(err.response.data.message || 'Login failed. Please try again.');

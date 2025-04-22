@@ -19,11 +19,15 @@ const courseSchema = new mongoose.Schema({
     courseCoordinator: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false,
     },
     instructors: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
+    }],
+    groups: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Group'
     }],
     enrolledStudents: [{
         student: {
@@ -36,7 +40,7 @@ const courseSchema = new mongoose.Schema({
         },
         grade: {
             type: String,
-            enum: ['A', 'B', 'C', 'D', 'F', 'IP'], // IP = In Progress
+            enum: ['A', 'B', 'C', 'D', 'F', 'IP'], 
             default: 'IP'
         }
     }],
@@ -46,23 +50,13 @@ const courseSchema = new mongoose.Schema({
     },
     semester: {
         type: String,
-        required: true,
-        enum: ['Fall', 'Spring', 'Summer']
     },
     credits: {
         type: Number,
         required: true,
         min: 1
     },
-    schedule: [{
-        day: {
-            type: String,
-            enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        },
-        startTime: String,
-        endTime: String,
-        room: String
-    }],
+
     prerequisites: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Course'
@@ -76,7 +70,7 @@ const courseSchema = new mongoose.Schema({
         default: true
     },
     syllabus: {
-        type: String // URL or file path to syllabus document
+        type: String ,
     },
     assignments: [{
         title: String,

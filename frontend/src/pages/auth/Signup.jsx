@@ -263,7 +263,7 @@ const Signup = () => {
   };
 
   return (
-    <div className={`relative flex w-screen h-screen ${themeConfig.background}`}>
+    <div className={`relative flex w-screen h-screen ${theme === 'dark' ? themeConfig.dark.background : themeConfig.light.background}`}>
       {/* Toast Container */}
       <ToastContainer 
         theme={theme === 'dark' ? 'dark' : 'light'}
@@ -283,12 +283,12 @@ const Signup = () => {
       <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       
       {/* Left side content */}
-      <div className={`relative w-3/10 p-6 flex flex-col justify-center z-10 ${theme === 'dark' ? '' : 'bg-gradient-to-br from-gray-800 to-black/80'}`}>
-        <h1 className={`text-3xl font-bold ${theme === 'dark' ? themeConfig.text : 'text-white'} mb-2`}>Welcome to Platform</h1>
-        <p className={`${theme === 'dark' ? themeConfig.secondaryText : 'text-[#a8dadc]'} mb-4`}>
+      <div className={`relative w-3/10 p-6 flex flex-col justify-center z-10 ${theme === 'dark' ? '' : theme === 'dark' ? themeConfig.dark.gradientBackground : 'bg-gradient-to-br from-[#2E4053] to-[#1C2833]'}`}>
+        <h1 className={`text-3xl font-bold ${theme === 'dark' ? themeConfig.dark.text : themeConfig.light.text} mb-2`}>Welcome to Platform</h1>
+        <p className={`${theme === 'dark' ? themeConfig.dark.secondaryText : themeConfig.light.secondaryText} mb-4`}>
           Already have an account? 
           <span 
-            className={`${theme === 'dark' ? 'text-green-400' : 'text-[#e63946]'} font-medium cursor-pointer ml-1 hover:underline`}
+            className={`${theme === 'dark' ? 'text-green-400' : 'text-[#2E4053]'} font-medium cursor-pointer ml-1 hover:underline`}
             onClick={() => navigate('/login')}
           >
             Sign in
@@ -299,20 +299,20 @@ const Signup = () => {
         
         {/* Add accent element for light theme only */}
         {theme !== 'dark' && (
-          <div className="absolute bottom-0 left-0 w-full h-2 bg-[#e63946]"></div>
+          <div className="absolute bottom-0 left-0 w-full h-2 bg-[#2E4053]"></div>
         )}
       </div>
       
       {/* Right side form */}
-      <div className={`relative w-7/10 ${theme === 'dark' ? 'bg-slate-800/30' : 'bg-slate-100'} backdrop-blur-sm p-6 flex flex-col items-center justify-center z-10`}>
+      <div className={`relative w-7/10 ${theme === 'dark' ? 'bg-slate-800/30' : themeConfig.light.gradientBackground} backdrop-blur-sm p-6 flex flex-col items-center justify-center z-10`}>
         {theme !== 'dark' && (
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#1d3557] to-[#e63946]"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#1C2833] to-[#2E4053]"></div>
         )}
         
         <div className="w-full max-w-lg">
           <div className="text-center mb-4">
-            <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-[#1d3557]'}`}>Registration</h2>
-            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-[#457b9d]'} mt-2 max-w-md mx-auto`}>
+            <h2 className={`text-2xl font-bold ${theme === 'dark' ? themeConfig.dark.text : themeConfig.light.text}`}>Registration</h2>
+            <p className={`text-sm ${theme === 'dark' ? themeConfig.dark.secondaryText : themeConfig.light.secondaryText} mt-2 max-w-md mx-auto`}>
               Join our platform to access all features and connect with students and teachers from around the world.
             </p>
           </div>

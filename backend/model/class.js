@@ -33,7 +33,8 @@ const classSchema = new Schema({
     default: Date.now
   },
   endDate: {
-    type: Date
+    type: Date,
+    default: Date.now
   },
   schedule: {
     dayOfWeek: [Number], 

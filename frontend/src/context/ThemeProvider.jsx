@@ -54,17 +54,76 @@ export const ThemeProvider = ({ children }) => {
 
   // Theme config object with common color mappings
   const themeConfig = {
-    background: theme === 'dark' ? 'bg-slate-900' : 'bg-[#f1faee]', // Honeydew
-    text: theme === 'dark' ? 'text-white' : 'text-[#1d3557]', // Berkeley Blue
-    secondaryText: theme === 'dark' ? 'text-gray-300' : 'text-[#457b9d]', // Cerulean
-    card: theme === 'dark' ? 'bg-slate-800' : 'bg-[#f1faee] border border-[#a8dadc]', // Honeydew with Non Photo Blue border
-    input: theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-white text-[#1d3557] border-[#a8dadc]', // Berkeley Blue text, Non Photo Blue border
-    button: {
-      primary: theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#e63946] hover:bg-[#eb5f6b] text-white', // Red Pantone
-      secondary: theme === 'dark' ? 'bg-gray-600 hover:bg-gray-700' : 'bg-[#a8dadc] hover:bg-[#b9e2e3] text-[#1d3557]' // Non Photo Blue
+    // Dark theme (unchanged)
+    dark: {
+      background: 'bg-[#0A0E13]',
+      text: 'text-white',
+      gradientBackground: 'bg-gradient-to-b from-[#121A22] to-[#0A0E13]',
+      card: 'bg-gradient-to-br from-[#121A22] to-[#0A0E13]/50 border border-[#1E2733] shadow-xl',
+      icon: 'text-white',
+      secondaryText: 'text-[#5E6E82]',
+      button: {
+        primary: 'bg-gradient-to-r from-[#506EE5]/60 via-[#222C42]/40 to-[#1D2229] text-white ' +
+                 'hover:from-[#506EE5] hover:to-[#1D2229] ' +
+                 'border-2 border-[#1E4FFF]/30 border-rounded-lg ' +
+                 'transition-all duration-300 ease-in-out',
+        gradient: 'bg-gradient-to-r from-[#F2683C]/20 to-[#2F955A]/20',
+        green: 'bg-gradient-to-r from-[#1A2520]/80 to-[#0A0E13]/90 text-white ' +
+               'hover:from-[#2F955A]/20 hover:to-[#0A0E13]/80 ' +
+               'border-2 border-[#2F955A]/50 rounded-lg ' +
+               'shadow-[inset_0_0_15px_rgba(47,149,90,0.3)] ' +
+               'transition-all duration-300 ease-in-out',
+        orange: 'bg-gradient-to-r from-[#251A1A]/80 to-[#0A0E13]/90 text-white ' +
+                'hover:from-[#F2683C]/20 hover:to-[#0A0E13]/80 ' +
+                'border-2 border-[#F2683C]/50 rounded-lg ' +
+                'shadow-[inset_0_0_15px_rgba(242,104,60,0.3)] ' +
+                'transition-all duration-300 ease-in-out'
+      },
+      gradient: {
+        text: 'bg-gradient-to-r from-[#2E67FF] to-[#2F955A] bg-clip-text text-transparent',
+        accent: 'bg-gradient-to-r from-[#F2683C] to-[#2F955A]'
+      }
+    },
+  
+    // Light theme (updated to match AWS Console)
+    light: {
+      background: 'bg-white',
+      text: 'text-gray-800',
+      gradientBackground: 'bg-white',
+      sidebar: 'bg-gray-100',
+      card: 'bg-white border border-gray-200 shadow-sm',
+      icon: 'text-gray-600',
+      secondaryText: 'text-gray-500',
+      button: {
+        primary: 'bg-blue-600 text-white ' +
+                 'hover:bg-blue-700 ' +
+                 'border border-blue-600 rounded-md ' +
+                 'transition-all duration-300 ease-in-out',
+        gradient: 'bg-gray-100 text-gray-800',
+        green: 'bg-green-600 text-white ' +
+               'hover:bg-green-700 ' +
+               'border border-green-600 rounded-md ' +
+               'transition-all duration-300 ease-in-out',
+        orange: 'bg-orange-500 text-white ' +
+                'hover:bg-orange-600 ' +
+                'border border-orange-500 rounded-md ' +
+                'transition-all duration-300 ease-in-out',
+        lavender: 'bg-blue-600 text-white ' +
+                  'hover:bg-blue-700 ' +
+                  'border border-blue-600 rounded-md ' +
+                  'transition-all duration-300 ease-in-out',
+        brown: 'bg-gray-500 text-white ' +
+               'hover:bg-gray-600 ' +
+               'border border-gray-500 rounded-md ' +
+               'transition-all duration-300 ease-in-out'
+      },
+      gradient: {
+        text: 'text-blue-600 font-medium',
+        accent: 'text-orange-500 font-medium'
+      }
     }
   };
-
+  
   const value = {
     theme,
     toggleTheme,

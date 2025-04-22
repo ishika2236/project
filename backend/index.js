@@ -5,7 +5,11 @@ require('dotenv').config();
 const cors = require('cors');
 
 const app = express();
+const authMiddleware = require('./middleware/authMiddleware')
 const authRoutes = require('./routes/auth');
+const courseRoutes = require('./routes/courseRoutes');
+const groupRoutes = require('./routes/groupRoutes');
+const userRoutes = require('./routes/userRoutes');
 const faceRecognitionRoutes = require('./routes/faceRecognition');
 
 
@@ -24,7 +28,9 @@ app.use(cors({
 
 app.use('/api/auth', authRoutes);
 app.use('/api/face-recognition', faceRecognitionRoutes);
-
+app.use('/api/courses',authMiddleware, courseRoutes);
+app.use('/api/groups',authMiddleware, groupRoutes);
+app.use('/api/users',authMiddleware, userRoutes);
 
 // Connect to MongoDB
 connectDB();

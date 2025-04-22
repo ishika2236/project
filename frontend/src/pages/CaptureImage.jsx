@@ -6,7 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import DotBackground from '../components/BackgroundDecorations';
 import BackgroundDecorations from '../components/BackgroundDecorations';
 import { useAuth } from '../context/AuthProvider';
-import Sidebar from '../components/Sidebar';
+import Sidebar from '../components/sidebar';
 // Updated color palette with provided hex codes
 const colors = {
   // Primary colors
@@ -66,7 +66,7 @@ const CaptureImage = () => {
       setStatus('processing');
       toast.info('Face detected! Sending to server for recognition...'); 
       
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/face-recognition/find-closest-match`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/face-recognition/find-closest-match`, {
         embedding: JSON.stringify(embedding)
       });
       
@@ -177,7 +177,6 @@ const CaptureImage = () => {
     
       <div className="flex">
         <div className="z-10">
-          <Sidebar/>
         </div>
         <div className="h-screen w-full flex items-center justify-center">
         <DotBackground colors={colors} density={0.6} />
@@ -253,7 +252,7 @@ const CaptureImage = () => {
                   {/* User profile image */}
                   <div className="w-24 h-24 rounded-full overflow-hidden mr-4" 
                     style={{ backgroundColor: colors.tonalMediumDark, border: `3px solid ${colors.accentGreen}` }}>
-                    {/* Profile image container */}
+                    <img src={matchResult.user.profileImage} alt="" srcset="" />
                   </div>
                 </div>
                 

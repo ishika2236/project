@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('authToken');
       if (token) {
         try {
-          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setUser(response.data.user);
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       formData.faceEmbedding = JSON.stringify(formData.faceEmbedding);
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/signup`, formData);
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/signup`, formData);
       const { token, user } = response.data;
       localStorage.setItem('authToken', token);
       setUser(user);
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, credentials);
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, credentials);
       const { token, user } = response.data;
       localStorage.setItem('authToken', token);
       setUser(user);
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
       if (updateData.profileImage) {
         formDataToSend.append('profileImage', updateData.profileImage);
       }
-      const response = await axios.put(`${import.meta.env.VITE_API_URL}/api/users/profile`, formDataToSend, {
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/users/profile`, formDataToSend, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
       });
       setUser(response.data.user);
