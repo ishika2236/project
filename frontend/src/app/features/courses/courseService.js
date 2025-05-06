@@ -1,4 +1,4 @@
-// courseService.js - with update and delete functionality added
+// courseService.js
 import axiosInstance from "../../../utils/axiosInstance";
 const API_URL = import.meta.env.VITE_API_URL + "/courses"; 
 
@@ -13,7 +13,9 @@ const getAdminCourses = async () => {
 };
 
 const getTeacherCourses = async () => {
+ 
   const res = await axiosInstance.get(`${API_URL}/teacher/courses`);
+  console.log(res.data);
   return res.data;
 };
 
@@ -41,18 +43,29 @@ const enrollInCourse = async (courseId, studentId) => {
   return res.data;
 };
 
-// Add update course function
 const updateCourse = async (courseId, courseData) => {
   const res = await axiosInstance.put(`${API_URL}/${courseId}`, courseData);
   return res.data;
 };
 
-// Add delete course function
 const deleteCourse = async (courseId) => {
   const res = await axiosInstance.delete(`${API_URL}/${courseId}`);
   return res.data;
 };
 
+// Add missing function to match backend
+const getCoursesByDepartment = async (departmentId) => {
+  const res = await axiosInstance.get(`${API_URL}/department/${departmentId}`);
+  return res.data;
+};
+const assignTeacherToCourse  = async( courseId, teacherId, groupId ) => {
+    const response = await axiosInstance.post(`${API_URL}/${courseId}/assign-teacher`, {
+      teacherId,
+      groupId
+    });
+    return response.data;
+  
+}
 const courseService = {
   createCourse,
   getAdminCourses,
@@ -63,6 +76,8 @@ const courseService = {
   enrollInCourse,
   updateCourse,
   deleteCourse,
+  getCoursesByDepartment,
+  assignTeacherToCourse
 };
 
 export default courseService;

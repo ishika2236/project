@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../context/ThemeProvider';
-import { Settings, User, Bell, Shield, Clock, Database, Palette, Globe, Eye, Lock, Server, Download, Upload, Activity } from 'lucide-react';
 import SettingsSidebar from '../../components/admin/settings/SettingsSidebar';  
 import GeneralSettings from '../../components/admin/settings/GeneralSettings';
 import AccountSettings from '../../components/admin/settings/AccountSettings';

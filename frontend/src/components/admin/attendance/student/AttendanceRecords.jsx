@@ -1,72 +1,171 @@
 import React from 'react';
-import { Check, X, FileText } from 'lucide-react';
+import { Check, Clock, X, BriefcaseMedicalIcon, Briefcase, BriefcaseMedical } from 'lucide-react';
 import { useTheme } from '../../../../context/ThemeProvider';
-import StatusBadge from '../utils/StatusBadge';
 
-const AttendanceRecords = ({ studentId, attendance, onApproveLeave }) => {
-  const { themeConfig, theme, isDark } = useTheme();
-  const currentTheme = themeConfig[theme];
-
+const AttendanceRecords = ({ studentId, attendance, courses, onApproveLeave }) => {
+  const { isDark } = useTheme();
+  
+  // Format date to display in a more readable format
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric'
+    }).format(date);
+  };
+  
+  // Get course name from id
+  const getCourseName = (courseId) => {
+    const course = courses.find(c => c.id === courseId);
+    return course ? course.courseName : 'Unknown Course';
+  };
+  
+  // Get status icon based on attendance status
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'present':
+        return <Check size={16} className={`${isDark ? 'text-green-400' : 'text-green-600'}`} />;
+      case 'absent':
+        return <X size={16} className={`${isDark ? 'text-red-400' : 'text-red-500'}`} />;
+      case 'medical':
+        return <BriefcaseMedical size={16} className={`${isDark ? 'text-blue-400' : 'text-blue-600'}`} />;
+      case 'duty':
+        return <Briefcase size={16} className={`${isDark ? 'text-amber-400' : 'text-amber-600'}`} />;
+      default:
+        return null;
+    }
+  };
+  
+  // Get status text and style based on attendance status
+  const getStatusInfo = (status) => {
+    let text = '';
+    let bgColor = '';
+    let textColor = '';
+    
+    switch(status) {
+      case 'present':
+        text = 'Present';
+        bgColor = isDark ? 'bg-green-900/30' : 'bg-green-100';
+        textColor = isDark ? 'text-green-400' : 'text-green-700';
+        break;
+      case 'absent':
+        text = 'Absent';
+        bgColor = isDark ? 'bg-red-900/30' : 'bg-red-100';
+        textColor = isDark ? 'text-red-400' : 'text-red-700';
+        break;
+      case 'medical':
+        text = 'Medical Leave';
+        bgColor = isDark ? 'bg-blue-900/30' : 'bg-blue-100';
+        textColor = isDark ? 'text-blue-400' : 'text-blue-700';
+        break;
+      case 'duty':
+        text = 'Official Duty';
+        bgColor = isDark ? 'bg-amber-900/30' : 'bg-amber-100';
+        textColor = isDark ? 'text-amber-400' : 'text-amber-700';
+        break;
+      default:
+        text = 'Unknown';
+        bgColor = isDark ? 'bg-gray-800' : 'bg-gray-100';
+        textColor = isDark ? 'text-gray-400' : 'text-gray-700';
+    }
+    
+    return { text, bgColor, textColor };
+  };
+  
   return (
-    <div className={`${currentTheme.card} rounded-xl overflow-hidden`}>
-      <div className="p-4 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-700">
-          <thead>
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Date</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Details</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-700">
-            {attendance.map((record, index) => (
-              <tr key={index} className={isDark ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <StatusBadge status={record.status} />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {(record.status === 'medical' || record.status === 'duty') && (
-                    <span className={record.approved ? 'text-green-500' : 'text-amber-500'}>
-                      {record.approved ? 'Approved' : 'Pending Approval'}
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {(record.status === 'medical' || record.status === 'duty') && !record.approved && (
-                    <div className="flex space-x-2">
-                      <button 
-                        onClick={() => onApproveLeave(studentId, record.date)}
-                        className={`${isDark ? 'bg-green-900/20 text-green-500 hover:bg-green-900/30' : 'bg-green-100 text-green-700 hover:bg-green-200'} px-2 py-1 rounded-md text-xs flex items-center`}
+    <div className={`${
+      isDark ? 'border-gray-700' : 'border-gray-200'
+    } border rounded-xl overflow-x-auto`}>
+      <table className="w-full min-w-full">
+        <thead>
+          <tr className={`${
+            isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-50 text-gray-700'
+          }`}>
+            <th className="text-left py-3 px-4">Date</th>
+            <th className="text-left py-3 px-4">Course</th>
+            <th className="text-left py-3 px-4">Status</th>
+            <th className="text-left py-3 px-4">Approval</th>
+            <th className="text-right py-3 px-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+  {attendance.length === 0 ? (
+    <tr>
+      <td colSpan={5} className="text-center py-6 text-gray-500">
+        No attendance records found
+      </td>
+    </tr>
+  ) : (
+    <>
+      {[...attendance].sort((a, b) => new Date(b.date) - new Date(a.date)).map((record, index) => {
+        const { text, bgColor, textColor } = getStatusInfo(record.status);
+        return (
+          <tr 
+                  key={index} 
+                  className={`${
+                    isDark 
+                      ? 'border-gray-700 hover:bg-gray-800/50' 
+                      : 'border-gray-200 hover:bg-gray-50'
+                  } border-t transition-colors`}
+                >
+                  <td className="py-3 px-4">{formatDate(record.date)}</td>
+                  <td className="py-3 px-4">{getCourseName(record.courseId)}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center">
+                      {getStatusIcon(record.status)}
+                      <span className={`${bgColor} ${textColor} ml-2 px-2 py-1 rounded-md text-xs`}>
+                        {text}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    {(record.status === 'medical' || record.status === 'duty') && (
+                      record.approved ? (
+                        <span className={`${
+                          isDark ? 'text-green-400' : 'text-green-600'
+                        } flex items-center`}>
+                          <Check size={16} className="mr-1" />
+                          Approved
+                        </span>
+                      ) : (
+                        <span className={`${
+                          isDark ? 'text-amber-400' : 'text-amber-600'
+                        } flex items-center`}>
+                          <Clock size={16} className="mr-1" />
+                          Pending
+                        </span>
+                      )
+                    ) }: (
+                      <span className={`${
+                        isDark ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        N/A
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    {(record.status === 'medical' || record.status === 'duty') && !record.approved && (
+                      <button
+                        onClick={() => onApproveLeave(studentId, record.date, record.courseId)}
+                        className={`${
+                          isDark 
+                            ? 'bg-blue-900/30 hover:bg-blue-800/50 text-blue-400 border-blue-800' 
+                            : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+                        } border px-3 py-1 rounded-md text-sm transition-colors`}
                       >
-                        <Check size={14} className="mr-1" />
                         Approve
                       </button>
-                      <button 
-                        className={`${isDark ? 'bg-red-900/20 text-red-500 hover:bg-red-900/30' : 'bg-red-100 text-red-700 hover:bg-red-200'} px-2 py-1 rounded-md text-xs flex items-center`}
-                      >
-                        <X size={14} className="mr-1" />
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                  {(record.status === 'medical' || record.status === 'duty') && record.approved && (
-                    <button
-                      className={`${isDark ? 'bg-blue-900/20 text-blue-500 hover:bg-blue-900/30' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'} px-2 py-1 rounded-md text-xs flex items-center`}
-                    >
-                      <FileText size={14} className="mr-1" />
-                      View Document
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    )}
+                  </td>
+                </tr>
+        );
+      })}
+    </>
+  )}
+</tbody>
+
+      </table>
     </div>
   );
 };

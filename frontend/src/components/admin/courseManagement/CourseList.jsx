@@ -1,8 +1,9 @@
 // CourseList.js
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Eye, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, Edit2, Trash2, Users } from 'lucide-react';
 
-const CourseCard = ({ course, onView, onEdit, onDelete, colors }) => {
+
+const CourseCard = ({ course, onView, onEdit, onDelete, onAssignTeacher, colors }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const toggleExpand = () => {
@@ -20,7 +21,8 @@ const CourseCard = ({ course, onView, onEdit, onDelete, colors }) => {
             {course.courseCode}: {course.courseName}
           </h3>
           <p className={`text-sm ${colors.secondaryText}`}>
-            {course.department} • {course.credits} credits • {course.enrolledStudents.length}/{course.maxCapacity} students
+            {course.department?.name || 'No Department'} • {course.credits} credits • 
+            {course.enrolledStudents?.length || 0}/{course.maxCapacity} students
           </p>
         </div>
         <div className="flex items-center">
@@ -44,16 +46,20 @@ const CourseCard = ({ course, onView, onEdit, onDelete, colors }) => {
               <ul className={`space-y-1 ${colors.text}`}>
                 <li>Academic Year: {course.academicYear}</li>
                 <li>Semester: {course.semester}</li>
-                <li>Coordinator: {course.courseCoordinator?.name}</li>
+                <li>Coordinator: {course.courseCoordinator?.firstName || 'Not assigned'}</li>
               </ul>
             </div>
             
             <div>
               <h4 className={`text-sm font-medium mb-1 ${colors.gradient.text}`}>Instructors</h4>
               <ul className={`space-y-1 ${colors.text}`}>
-                {course.instructors.map(instructor => (
-                  <li key={instructor._id}>{instructor.name}</li>
-                ))}
+                {course.instructors && course.instructors.length > 0 ? (
+                  course.instructors.map(instructor => (
+                    <li key={instructor._id}>{instructor.firstName} {instructor.lastName}</li>
+                  ))
+                ) : (
+                  <li>No instructors assigned</li>
+                )}
               </ul>
             </div>
           </div>
@@ -80,7 +86,16 @@ const CourseCard = ({ course, onView, onEdit, onDelete, colors }) => {
               <Edit2 className="mr-1 h-4 w-4" />
               Edit
             </button>
-            
+            <button 
+              className={`flex items-center py-1 px-3 rounded-md ${colors.button.blue}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssignTeacher(course);
+              }}
+            >
+              <Users className="mr-1 h-4 w-4" />
+              Assign Teacher
+            </button>
             <button 
               className="flex items-center py-1 px-3 rounded-md bg-red-500 text-white hover:bg-red-600"
               onClick={(e) => {
@@ -98,29 +113,28 @@ const CourseCard = ({ course, onView, onEdit, onDelete, colors }) => {
   );
 };
 
-const CourseList = ({ courses, onView, onEdit, onDelete, colors }) => {
-  return (
-    <div className="mb-6">
-      <h2 className={`text-xl font-semibold mb-4 ${colors.text}`}>Courses ({courses.length})</h2>
-      
-      <div className="space-y-4">
-        {courses.length === 0 ? (
-          <p className={`p-4 ${colors.card} rounded-lg ${colors.secondaryText}`}>
-            No courses found. Try adjusting your search or create a new course.
-          </p>
-        ) : (
-          courses.map(course => (
-            <CourseCard 
-              key={course._id}
-              course={course}
-              onView={onView}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              colors={colors}
-            />
-          ))
-        )}
+const CourseList = ({ courses, onView, onEdit, onDelete, onAssignTeacher, colors }) => {
+  if (!courses || courses.length === 0) {
+    return (
+      <div className={`p-6 ${colors.card} rounded-lg ${colors.text} text-center`}>
+        No courses found. Create a new course to get started.
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {courses.map(course => (
+        <CourseCard
+          key={course._id}
+          course={course}
+          onView={onView}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onAssignTeacher={onAssignTeacher}
+          colors={colors}
+        />
+      ))}
     </div>
   );
 };

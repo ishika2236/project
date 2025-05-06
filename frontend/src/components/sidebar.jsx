@@ -18,17 +18,18 @@ import {
   Book,
   Calendar,
   Share2,
-  Home
-
+  Home,
+  GroupIcon,
+  BookUser
 } from "lucide-react";
 import { useTheme } from "../context/ThemeProvider";
-import { useAuth } from "../context/AuthProvider";
+import { useSelector } from "react-redux";
 
 const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNavigate}) => {
   const [collapsed, setCollapsed] = useState(false);
   const { theme, themeConfig, isDark } = useTheme();
   const [sidebarContent, setSidebarContent] = useState([]);
-  const { user } = useAuth();
+  const { user } = useSelector(state => state.auth);
   const location = useLocation();
   
   // Define icon colors based on theme - bolder colors for light theme
@@ -36,54 +37,17 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
 
   const sideBarItems = {
     teacher: [
-      { id: "overview", label: "Course Overview", icon: <Home size={20} />, link: "/teacher/overview" },
-      ...(selectedCourse
-        ? [
-            {
-              id: "courseDetails",
-              label: selectedCourse.name,
-              icon: <Book size={20} />,
-              link: `/teacher/courses/${selectedCourse._id}`, // Assuming course has _id
-            },
-          ]
-        : []),
-      ...(selectedGroup
-        ? [
-            {
-              id: "groupDetails",
-              label: selectedGroup.name,
-              icon: <Users size={20} />,
-              link: `/teacher/groups/${selectedGroup._id}`, // Assuming group has _id
-            },
-          ]
-        : []),
-      ...(selectedClass
-        ? [
-            {
-              id: "attendanceManagement",
-              label: "Attendance",
-              icon: <ClipboardList size={20} />,
-              link: `/teacher/classes/${selectedClass._id}/attendance`,
-            },
-            {
-              id: "attendanceControl",
-              label: "Control Panel",
-              icon: <Calendar size={20} />,
-              link: `/teacher/classes/${selectedClass._id}/control`,
-            },
-            {
-              id: "materialsSharing",
-              label: "Materials",
-              icon: <Share2 size={20} />,
-              link: `/teacher/classes/${selectedClass._id}/materials`,
-            },
-          ]
-        : []),
+      { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} />, link: "/teacher/dashboard" },
+      { id: "classroom", label: "Classroom", icon: <BookUser size={20} />, link: "/teacher/classroom" },
+      { id: "groups", label: "Attendance Records", icon: <GroupIcon size={20} />, link: "/teacher/groups" },
+     
+           
     ],
     student: [
       { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} />, link: "/student/dashboard" },
       { id: "courses", label: "Courses", icon: <BookOpen size={20} />, link: "/student/courses" },
       { id: "attendance", label: "Attendance", icon: <ClipboardList size={20} />, link: "/student/attendance" },
+
       { id: "enroll", label: "Enroll Course", icon: <PlusCircle size={20} />, link: "/student/enroll" },
     ],
     admin: [
@@ -93,15 +57,15 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
       { id: "groups", label: "Groups", icon: <Users size={20} />, link: "/admin/manageGroups" },
       { id: "attendance", label: "Attendance", icon: <ClipboardList size={20} />, link: "/admin/manageAttendance" },
       { id: "settings", label: "Settings", icon: <Settings size={20} />, link: "/admin/adminSettings" },
+      { id: "departments", label: "Department", icon: <Settings size={20} />, link: "/admin/manageDepartments" },
     ]
   };
 
   useEffect(() => {
     if (user && user.role) {
-      setSidebarContent(sideBarItems[user.role]);
-      console.log(user)
+      setSidebarContent(sideBarItems[user.role] || []);
     }
-  }, [user]);
+  }, [user, selectedCourse, selectedGroup, selectedClass]);
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -134,7 +98,7 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
   return (
     <div 
       className={`
-        transition-all duration-300 
+        transition-all duration-300  z-100
         ${collapsed ? "w-20" : "w-64"} 
         flex flex-col h-screen 
         ${sidebarBackground}
@@ -172,46 +136,52 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
 
       {/* Sidebar Menu */}
       <div className="flex-1 overflow-y-auto py-5 px-3">
-        <ul className="space-y-1">
-          {sidebarContent.map((item) => {
-            const isActiveItem = isActive(item.link);
-            return (
-              <li key={item.id}>
-                <Link
-                  to={item.link}
-                  className={`
-                    flex items-center px-4 py-3 rounded-lg
-                    transition-all duration-200
-                    ${isActiveItem ? activeItemStyle : ''}
-                    ${isDark 
-                      ? 'hover:bg-[#171D25] hover:border-l-4 hover:border-[#2F955A]/50' 
-                      : 'hover:bg-[#BDC3C7]/40 hover:border-l-4 hover:border-[#1C2833]/80'
-                    }
-                  `}
-                >
-                  <div className={`
-                    ${isActiveItem ? (isDark ? 'text-[#2F955A]' : 'text-[#1C2833]') : (isDark ? 'text-white/70' : textColor)}
-                  `}>
-                    {React.cloneElement(item.icon, { 
-                      color: isActiveItem ? iconColor : (isDark ? '#FFFFFF99' : '#2E4053')
-                    })}
-                  </div>
-                  {!collapsed && (
-                    <span className={`
-                      ml-3 font-medium text-sm truncate
-                      ${isActiveItem 
-                        ? (isDark ? 'text-white' : 'text-[#1C2833] font-semibold') 
-                        : (isDark ? 'text-white/70' : secondaryTextColor)
+        {user && user.role ? (
+          <ul className="space-y-1">
+            {sidebarContent.map((item) => {
+              const isActiveItem = isActive(item.link);
+              return (
+                <li key={item.id}>
+                  <Link
+                    to={item.link}
+                    className={`
+                      flex items-center px-4 py-3 rounded-lg
+                      transition-all duration-200
+                      ${isActiveItem ? activeItemStyle : ''}
+                      ${isDark 
+                        ? 'hover:bg-[#171D25] hover:border-l-4 hover:border-[#2F955A]/50' 
+                        : 'hover:bg-[#BDC3C7]/40 hover:border-l-4 hover:border-[#1C2833]/80'
                       }
+                    `}
+                  >
+                    <div className={`
+                      ${isActiveItem ? (isDark ? 'text-[#2F955A]' : 'text-[#1C2833]') : (isDark ? 'text-white/70' : textColor)}
                     `}>
-                      {item.label}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                      {React.cloneElement(item.icon, { 
+                        color: isActiveItem ? iconColor : (isDark ? '#FFFFFF99' : '#2E4053')
+                      })}
+                    </div>
+                    {!collapsed && (
+                      <span className={`
+                        ml-3 font-medium text-sm truncate
+                        ${isActiveItem 
+                          ? (isDark ? 'text-white' : 'text-[#1C2833] font-semibold') 
+                          : (isDark ? 'text-white/70' : secondaryTextColor)
+                        }
+                      `}>
+                        {item.label}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className={`text-center p-4 ${secondaryTextColor}`}>
+            Loading menu...
+          </div>
+        )}
       </div>
 
       {/* Bottom Section */}

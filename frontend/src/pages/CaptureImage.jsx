@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import AutoFaceDetector from '../components/AutoFaceDetector';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify'; 
 import DotBackground from '../components/BackgroundDecorations';
 import BackgroundDecorations from '../components/BackgroundDecorations';
-import { useAuth } from '../context/AuthProvider';
 import Sidebar from '../components/sidebar';
+
 // Updated color palette with provided hex codes
 const colors = {
   // Primary colors
@@ -44,11 +45,11 @@ const CaptureImage = () => {
   const [matchResult, setMatchResult] = useState(null);
   const [isCapturing, setIsCapturing] = useState(true);
   const [capturedFace, setCapturedFace] = useState(null);
-  // const [isAuthenticated, setIsAuthenticated] = useState(false);\
-  const {isAuthenticated} = useAuth();
+  
+  // Use Redux state instead of AuthProvider context
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const navigate = useNavigate();
-  
   
   const handleFaceEmbeddingGenerated = async (imageFile, embedding, faceImageUrl) => {
     // Only process if we're still in capturing mode
@@ -252,7 +253,7 @@ const CaptureImage = () => {
                   {/* User profile image */}
                   <div className="w-24 h-24 rounded-full overflow-hidden mr-4" 
                     style={{ backgroundColor: colors.tonalMediumDark, border: `3px solid ${colors.accentGreen}` }}>
-                    <img src={matchResult.user.profileImage} alt="" srcset="" />
+                    <img src={matchResult.user.profileImage} alt="" />
                   </div>
                 </div>
                 

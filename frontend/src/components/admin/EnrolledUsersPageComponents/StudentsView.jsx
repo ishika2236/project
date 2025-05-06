@@ -22,6 +22,7 @@ const StudentsView = ({
   theme,
   currentTheme,
 }) => {
+  {console.log(currentStudents)}
   return (
     <div className="space-y-6">
       <div className={`${currentTheme.card} rounded-xl overflow-hidden`}>
@@ -128,7 +129,7 @@ const StudentRow = ({
       )}
       {!selectedGroup && (
         <div className={`col-span-1 ${currentTheme.text} flex items-center`}>
-          {student.group}
+          {student.group.name}
         </div>
       )}
       <div className={`col-span-${selectedCourse && selectedGroup ? 4 : (selectedCourse || selectedGroup) ? 3 : 2} flex items-center`}>

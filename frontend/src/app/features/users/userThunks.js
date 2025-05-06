@@ -19,7 +19,9 @@ export const fetchTeachers = createAsyncThunk(
   'users/fetchTeachers',
   async (_, { rejectWithValue }) => {
     try {
-      return await userService.getTeachers();
+      const response = await  userService.getTeachers();
+        // console.log(response.students);
+      return response.teachers; 
     } catch (error) {
       return rejectWithValue(error);
     }

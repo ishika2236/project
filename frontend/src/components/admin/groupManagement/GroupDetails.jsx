@@ -21,7 +21,7 @@ const GroupDetails = ({
     // Extract just the IDs from the selected students
     const studentIds = selectedStudents.map(student => student._id || student.id);
     
-    // Call the parent component's method to add students
+   
     onAddStudents(group._id, studentIds);
   };
 
@@ -41,8 +41,15 @@ const GroupDetails = ({
             Edit Group
           </button>
         </div>
+        {console.log(group)}
         <div className={`mt-2 ${colors.secondaryText}`}>
-          Course: {group?.course?.courseName || 'Web Development'}
+          Course: {group?.courses && group?.courses?.length > 0 ? (
+                  group.courses.map(course => (
+                    <li key={course._id}>{course.courseName}</li>
+                  ))
+                ) : (
+                  <li>No instructors assigned</li>
+                )}
         </div>
       </div>
       

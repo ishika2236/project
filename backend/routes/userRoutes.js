@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/authMiddleware');
-const adminMiddleware = require('../middleware/adminMiddleware');
+const {authMiddleware} = require('../middleware/authMiddleware');
+const {adminMiddleware} = require('../middleware/adminMiddleware');
 const upload = require('./../utils/multerConfig')
 
 const { getAllStudents, getAllTeachers, getAllUsers, updateUser, deleteUser, getUserById} = require('./../controller/userController')

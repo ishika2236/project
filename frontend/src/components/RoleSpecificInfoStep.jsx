@@ -1,90 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Upload, Loader, Check, X, Camera } from 'lucide-react';
 import ProfileCameraCapture from './ProfileCameraCapture';
-// Add ProfileCameraCapture component within the same file
-// const ProfileCameraCapture = ({ onImageCapture }) => {
-//   const videoRef = useRef(null);
-//   const [stream, setStream] = useState(null);
-//   const [isCameraActive, setIsCameraActive] = useState(false);
-
-//   const startCamera = async () => {
-//     try {
-//       const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-//       if (videoRef.current) {
-//         videoRef.current.srcObject = mediaStream;
-//       }
-//       setStream(mediaStream);
-//       setIsCameraActive(true);
-//     } catch (err) {
-//       console.error("Error accessing camera:", err);
-//     }
-//   };
-
-//   const stopCamera = () => {
-//     if (stream) {
-//       stream.getTracks().forEach(track => track.stop());
-//       setStream(null);
-//       setIsCameraActive(false);
-//     }
-//   };
-
-//   const captureImage = () => {
-//     if (videoRef.current) {
-//       const canvas = document.createElement('canvas');
-//       canvas.width = videoRef.current.videoWidth;
-//       canvas.height = videoRef.current.videoHeight;
-//       const ctx = canvas.getContext('2d');
-//       ctx.drawImage(videoRef.current, 0, 0);
-      
-//       // Convert canvas to blob
-//       canvas.toBlob((blob) => {
-//         const imageFile = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
-//         onImageCapture(imageFile);
-//         stopCamera();
-//       }, 'image/jpeg');
-//     }
-//   };
-
-//   return (
-//     <div className="mt-3 flex flex-col items-center">
-//       {isCameraActive ? (
-//         <div className="relative">
-//           <video 
-//             ref={videoRef} 
-//             autoPlay 
-//             playsInline 
-//             className="w-full max-w-sm rounded-lg border-2 border-green-500/30"
-//           />
-//           <div className="flex justify-center mt-2 gap-2">
-//             <button
-//               type="button"
-//               onClick={captureImage}
-//               className="px-3 py-1 bg-green-600 text-white rounded-lg flex items-center"
-//             >
-//               <Check size={16} className="mr-1" /> Capture
-//             </button>
-//             <button
-//               type="button"
-//               onClick={stopCamera}
-//               className="px-3 py-1 bg-red-500 text-white rounded-lg flex items-center"
-//             >
-//               <X size={16} className="mr-1" /> Cancel
-//             </button>
-//           </div>
-//         </div>
-//       ) : (
-//         <button
-//           type="button"
-//           onClick={startCamera}
-//           className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg"
-//         >
-//           <Camera size={16} className="mr-2" /> Use Camera
-//         </button>
-//       )}
-//     </div>
-//   );
-// };
+import { useDispatch } from 'react-redux';
 
 const RoleSpecificInfoStep = ({ 
   formData, 
@@ -98,14 +16,99 @@ const RoleSpecificInfoStep = ({
   handleSubmit,
   isSubmitting,
   setFaceEmbedding,
-  theme
+  theme, 
+  departments,
+  isDepartmentsLoading,
+  errors // Add errors prop to receive validation errors
 }) => {
   const fileInputRef = useRef(null);
-  
+  const dispatch = useDispatch();
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [availableRollNumbers, setAvailableRollNumbers] = useState([]);
+
   // Helper function to get theme-specific class names
   const getThemedClass = (darkClass, lightClass) => {
     return theme === 'dark' ? darkClass : lightClass;
   };
+
+  // Create a custom change handler that uses the parent handleChange
+  const handleCustomChange = (e) => {
+    // Pass the event directly to parent's handleChange function
+    handleChange(e);
+  };
+
+  // Debug logging for departments data
+  useEffect(() => {
+    console.log("departments in role info: ", departments);
+  }, [departments]);
+
+  // Handle department selection change
+  useEffect(() => {
+    if (formData.department && departments && departments.length > 0) {
+      const dept = departments.find(d => d._id === formData.department);
+      if (dept && dept.groups) {
+        setAvailableGroups(dept.groups);
+        // Reset group selection when department changes if not already set
+        if (formData.group) {
+          // Check if current group is valid for this department
+          const isValidGroup = dept.groups.some(g => g._id === formData.group);
+          if (!isValidGroup) {
+            // Create synthetic event to clear group selection
+            const syntheticEvent = {
+              target: { name: 'group', value: '' }
+            };
+            handleChange(syntheticEvent);
+            
+            // Clear roll number as well
+            const rollEvent = {
+              target: { name: 'rollNumber', value: '' }
+            };
+            handleChange(rollEvent);
+          }
+        }
+      }
+    } else {
+      setAvailableGroups([]);
+    }
+  }, [formData.department, departments, handleChange]);
+
+  // Handle group selection change
+  useEffect(() => {
+    if (formData.group && formData.department && formData.admissionYear && departments && departments.length > 0) {
+      const selectedDept = departments.find(d => d._id === formData.department);
+      if (!selectedDept) return;
+      
+      const selectedGroup = selectedDept.groups.find(g => g._id === formData.group);
+      if (!selectedGroup) return;
+      
+      // Generate roll numbers based on maxCapacity
+      const rollNumbers = Array.from({ length: selectedGroup.maxCapacity }, (_, i) => {
+        const deptCode = selectedDept ? selectedDept.code : '';
+        const groupName = selectedGroup.name.replace('group-', '');
+        const yearPrefix = formData.admissionYear ? formData.admissionYear.toString().slice(-2) : 'XX';
+        // Create roll number format: YYDEPTGROUPXXX (e.g., 24CS10001)
+        return `${yearPrefix}${deptCode}${groupName}${String(i + 1).padStart(3, '0')}`;
+      });
+      setAvailableRollNumbers(rollNumbers);
+      
+      // If current roll number is invalid, reset it
+      if (formData.rollNumber && !rollNumbers.includes(formData.rollNumber)) {
+        const syntheticEvent = {
+          target: { name: 'rollNumber', value: '' }
+        };
+        handleChange(syntheticEvent);
+      }
+    } else {
+      setAvailableRollNumbers([]);
+      // Clear roll number if any dependent field is empty
+      if (formData.rollNumber) {
+        const syntheticEvent = {
+          target: { name: 'rollNumber', value: '' }
+        };
+        handleChange(syntheticEvent);
+      }
+    }
+  }, [formData.group, formData.department, formData.admissionYear, departments, handleChange]);
 
   // Add handler for camera capture
   const handleImageCapture = (imageFile, faceEmbedding) => {
@@ -114,9 +117,65 @@ const RoleSpecificInfoStep = ({
     
     // Update the profile image and preview
     setProfileImage(imageFile);
-    // console.log(faceEmbedding);
     setFaceEmbedding(faceEmbedding);
     setProfileImagePreview(imageUrl);
+  };
+
+  // Show loading state if departments are still loading
+  if (isDepartmentsLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 100 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -100 }}
+        className="w-full flex justify-center items-center p-8"
+      >
+        <div className="flex flex-col items-center">
+          <Loader className={`animate-spin ${getThemedClass('text-green-400', 'text-green-600')}`} size={24} />
+          <p className={`mt-3 ${getThemedClass('text-white', 'text-blue-800')}`}>
+            Loading departments data...
+          </p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Show error state if departments are empty but not loading
+  if (!isDepartmentsLoading && (!departments || departments.length === 0)) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 100 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -100 }}
+        className="w-full flex justify-center items-center p-8"
+      >
+        <div className="flex flex-col items-center">
+          <X className="text-red-500" size={24} />
+          <p className={`mt-3 ${getThemedClass('text-white', 'text-blue-800')}`}>
+            Unable to load departments data. Please try again later.
+          </p>
+          <button
+            type="button"
+            onClick={prevStep}
+            className={`flex items-center px-3 py-1 mt-4 ${getThemedClass('bg-slate-700/40 hover:bg-slate-700/60 text-white border-red-500/30 hover:border-red-500/50', 'bg-pink-50 hover:bg-pink-100 text-pink-700 border-pink-400/30 hover:border-pink-400/50')} rounded-lg border transition-colors`}
+          >
+            <ArrowLeft className="mr-1 text-red-500" size={12} /> Back
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Helper function to render error message
+  const renderError = (fieldName) => {
+    if (errors && errors[fieldName]) {
+      return (
+        <p className={`text-xs mt-1 ${getThemedClass('text-red-400', 'text-red-500')}`}>
+          {errors[fieldName]}
+        </p>
+      );
+    }
+    return null;
   };
 
   return (
@@ -133,36 +192,80 @@ const RoleSpecificInfoStep = ({
       {role === 'student' ? (
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-1">
-            <label className={`block ${getThemedClass('text-gray-300', 'text-blue-600')} mb-1 text-sm`}>Roll Number</label>
-            <input
-              type="text"
-              name="rollNumber"
-              value={formData.rollNumber || ''}
-              onChange={handleChange}
-              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border focus:border-green-500/50 rounded-lg focus:outline-none focus:ring-1`}
-            />
+            <label className={`block ${getThemedClass('text-gray-300', 'text-blue-600')} mb-1 text-sm`}>Admission Year</label>
+            <select
+              name="admissionYear"
+              value={formData.admissionYear || ''}
+              onChange={handleCustomChange}
+              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border ${errors && errors.admissionYear ? getThemedClass('border-red-500', 'border-red-500') : 'focus:border-green-500/50'} rounded-lg focus:outline-none focus:ring-1`}
+            >
+              <option value="">Select Year</option>
+              {[...Array(5)].map((_, i) => {
+                const year = new Date().getFullYear() - i;
+                return (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                );
+              })}
+            </select>
+            {renderError('admissionYear')}
           </div>
           
           <div className="col-span-1">
-            <label className={`block ${getThemedClass('text-gray-300', 'text-blue-600')} mb-1 text-sm`}>Admission Year</label>
-            <input
-              type="number"
-              name="admissionYear"
-              value={formData.admissionYear || ''}
-              onChange={handleChange}
-              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border focus:border-green-500/50 rounded-lg focus:outline-none focus:ring-1`}
-            />
+            <label className={`block ${getThemedClass('text-gray-300', 'text-blue-600')} mb-1 text-sm`}>Department</label>
+            <select
+              name="department"
+              value={formData.department || ''}
+              onChange={handleCustomChange}
+              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border ${errors && errors.department ? getThemedClass('border-red-500', 'border-red-500') : 'focus:border-green-500/50'} rounded-lg focus:outline-none focus:ring-1`}
+            >
+              <option value="">Select Department</option>
+              {Array.isArray(departments) && departments.map(dept => (
+                <option key={dept._id} value={dept._id}>
+                  {dept.name} ({dept.code})
+                </option>
+              ))}
+            </select>
+            {renderError('department')}
           </div>
           
-          <div className="col-span-2">
+          <div className="col-span-1">
             <label className={`block ${getThemedClass('text-gray-300', 'text-blue-600')} mb-1 text-sm`}>Group/Class</label>
-            <input
-              type="text"
+            <select
               name="group"
               value={formData.group || ''}
-              onChange={handleChange}
-              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border focus:border-green-500/50 rounded-lg focus:outline-none focus:ring-1`}
-            />
+              onChange={handleCustomChange}
+              disabled={!formData.department}
+              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border ${errors && errors.group ? getThemedClass('border-red-500', 'border-red-500') : 'focus:border-green-500/50'} rounded-lg focus:outline-none focus:ring-1 ${!formData.department ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              <option value="">Select Group</option>
+              {availableGroups.map(group => (
+                <option key={group._id} value={group._id}>
+                  {group.name} (Max: {group.maxCapacity})
+                </option>
+              ))}
+            </select>
+            {renderError('group')}
+          </div>
+          
+          <div className="col-span-1">
+            <label className={`block ${getThemedClass('text-gray-300', 'text-blue-600')} mb-1 text-sm`}>Roll Number</label>
+            <select
+              name="rollNumber"
+              value={formData.rollNumber || ''}
+              onChange={handleCustomChange}
+              disabled={!formData.group || !formData.admissionYear || !formData.department}
+              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border ${errors && errors.rollNumber ? getThemedClass('border-red-500', 'border-red-500') : 'focus:border-green-500/50'} rounded-lg focus:outline-none focus:ring-1 ${(!formData.group || !formData.admissionYear || !formData.department) ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              <option value="">Select Roll Number</option>
+              {availableRollNumbers.map(roll => (
+                <option key={roll} value={roll}>
+                  {roll}
+                </option>
+              ))}
+            </select>
+            {renderError('rollNumber')}
           </div>
         </div>
       ) : (
@@ -174,19 +277,27 @@ const RoleSpecificInfoStep = ({
               name="employeeId"
               value={formData.employeeId || ''}
               onChange={handleChange}
-              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border focus:border-green-500/50 rounded-lg focus:outline-none focus:ring-1`}
+              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border ${errors && errors.employeeId ? getThemedClass('border-red-500', 'border-red-500') : 'focus:border-green-500/50'} rounded-lg focus:outline-none focus:ring-1`}
             />
+            {renderError('employeeId')}
           </div>
           
           <div className="col-span-1">
             <label className={`block ${getThemedClass('text-gray-300', 'text-blue-600')} mb-1 text-sm`}>Department</label>
-            <input
-              type="text"
+            <select
               name="department"
               value={formData.department || ''}
-              onChange={handleChange}
-              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border focus:border-green-500/50 rounded-lg focus:outline-none focus:ring-1`}
-            />
+              onChange={handleCustomChange}
+              className={`w-full p-2 ${getThemedClass('bg-slate-800/50 border-slate-700/30 text-white focus:ring-green-500/50', 'bg-white border-blue-200 text-blue-800 focus:ring-green-600/50')} border ${errors && errors.department ? getThemedClass('border-red-500', 'border-red-500') : 'focus:border-green-500/50'} rounded-lg focus:outline-none focus:ring-1`}
+            >
+              <option value="">Select Department</option>
+              {Array.isArray(departments) && departments.map(dept => (
+                <option key={dept._id} value={dept._id}>
+                  {dept.name} ({dept.code})
+                </option>
+              ))}
+            </select>
+            {renderError('department')}
           </div>
         </div>
       )}
@@ -219,33 +330,6 @@ const RoleSpecificInfoStep = ({
           ) : null}
           
           <div className="flex flex-col w-full gap-2">
-            {/* <label
-              htmlFor="profileImage"
-              className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-green-500/30 hover:border-green-500/50 rounded-lg cursor-pointer ${getThemedClass('bg-slate-800/30 hover:bg-slate-800/50', 'bg-blue-50 hover:bg-blue-100')} transition-colors`}
-            >
-              <div className="flex flex-col items-center justify-center py-2">
-                <Upload className="w-6 h-6 mb-1 text-green-400" />
-                <p className={`text-xs ${getThemedClass('text-slate-300', 'text-blue-600')}`}>
-                  {profileImagePreview ? 'Change image' : 'Click to upload'}
-                </p>
-                <p className={`text-xs ${getThemedClass('text-slate-400', 'text-blue-400')} mt-1`}>
-                  (JPG, PNG, GIF, max 5MB)
-                </p>
-              </div>
-              <input 
-                id="profileImage" 
-                type="file" 
-                className="hidden" 
-                accept="image/jpeg,image/png,image/gif" 
-                onChange={handleImageChange}
-                ref={fileInputRef}
-              />
-            </label> */}
-            
-            {/* <div className={`text-center ${getThemedClass('text-slate-300', 'text-blue-600')} text-sm mb-1`}>
-              - OR -
-            </div> */}
-            
             <ProfileCameraCapture onImageCapture={handleImageCapture} />
           </div>
         </div>

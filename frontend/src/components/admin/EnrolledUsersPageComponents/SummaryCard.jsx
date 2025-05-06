@@ -12,7 +12,7 @@ const SummaryCard = ({ teachers, theme, currentTheme }) => {
         <div>
           <p className={currentTheme.secondaryText}>Active Teachers</p>
           <p className={`text-2xl font-bold ${currentTheme.text}`}>
-            {teachers.filter(t => t.status === 'Active').length}
+            {teachers.length}
           </p>
         </div>
         <div>

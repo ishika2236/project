@@ -2,70 +2,74 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../../context/ThemeProvider';
 import { Save, X } from 'lucide-react';
 
-const GroupForm = ({ courses, isEditing, groupData, onSave, onCancel, teachers }) => {
+const GroupForm = ({ departments, isEditing, groupData, onSave, onCancel, teachers }) => {
   const { themeConfig, theme } = useTheme();
   const colors = themeConfig[theme];
 
   // Simplified state management with default values
   const [formData, setFormData] = useState({
     name: '',
-    courseId: '',
-    courseName:'',
-    teacherId: '',
-    teacherName: ''
+    departmentId: '',
+    departmentName: '',
+    mentorId: '',
+    mentorName: '',
+    maxCapacity: 100,
+    description: ''
   });
 
   // Initialize form data based on editing state
   useEffect(() => {
     if (isEditing && groupData) {
       // When editing, explicitly extract values from groupData
-      const selectedTeacher = teachers.find(t => t?.id?.toString() === groupData.teacherId?.toString());
-      const selectedCourse = courses.find(c => c?.id?.toString() === groupData.courseId?.toString());
+      const selectedMentor = teachers.find(t => t?._id?.toString() === groupData.mentor?._id?.toString());
+      const selectedDepartment = departments.find(d => d?._id?.toString() === groupData.department?._id?.toString());
 
       setFormData({
         name: groupData.name || '',
-        courseId: selectedCourse ? selectedCourse.id : '',
-        teacherId: selectedTeacher ? selectedTeacher.id : '',
-        teacherName: selectedTeacher ? 
-          `${selectedTeacher.firstName} ${selectedTeacher.lastName}` : ''
+        departmentId: selectedDepartment ? selectedDepartment._id : '',
+        departmentName: selectedDepartment ? selectedDepartment.name : '',
+        mentorId: selectedMentor ? selectedMentor._id : '',
+        mentorName: selectedMentor ? 
+          `${selectedMentor.firstName} ${selectedMentor.lastName}` : '',
+        maxCapacity: groupData.maxCapacity || 100,
+        description: groupData.description || ''
       });
     } else {
       // Default to first options if available
-      const defaultCourseId = courses.length > 0 ? courses[0].id : '';
-      const defaultTeacherId = teachers.length > 0 ? teachers[0].id : '';
+      const defaultDepartmentId = departments.length > 0 ? departments[0]._id : '';
+      const defaultMentorId = teachers.length > 0 ? teachers[0]._id : '';
       
       setFormData({
         name: '',
-        courseId: defaultCourseId,
-        teacherId: defaultTeacherId,
-        teacherName: teachers.length > 0 ? 
-          `${teachers[0].firstName} ${teachers[0].lastName}` : ''
+        departmentId: defaultDepartmentId,
+        departmentName: departments.length > 0 ? departments[0].name : '',
+        mentorId: defaultMentorId,
+        mentorName: teachers.length > 0 ? 
+          `${teachers[0].firstName} ${teachers[0].lastName}` : '',
+        maxCapacity: 100,
+        description: ''
       });
     }
-  }, [isEditing]);
+  }, [isEditing, groupData, departments, teachers]);
 
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    if (name === 'teacherId') {
+    if (name === 'mentorId') {
       // Find the selected teacher to get their name
-      const selectedTeacher = teachers.find(t => `${t.firstName + " "+ t.lastName}`.toString() === value?.toString());
+      const selectedTeacher = teachers.find(t => t._id.toString() === value.toString());
       setFormData({
         ...formData,
-        teacherId: selectedTeacher._id,
-        teacherName: value
+        mentorId: value,
+        mentorName: selectedTeacher ? `${selectedTeacher.firstName} ${selectedTeacher.lastName}` : ''
       });
-    } else if (name === 'courseId') {
-      // console.log("courses: ", courses);
-      // console.log(courses[0].courseName.toString() === value.toString());
-      const selectedCourse = courses.find(c => c?.courseName?.toString() == value?.toString());
-      // console.log(name + " "+ value + " "+ selectedCourse._id)
-
+    } else if (name === 'departmentId') {
+      const selectedDepartment = departments.find(d => d._id.toString() === value.toString());
       setFormData({
         ...formData,
-        courseId: selectedCourse ? selectedCourse._id : value,
-        courseName: value,
+        departmentId: value,
+        departmentName: selectedDepartment ? selectedDepartment.name : '',
       });
     } else {
       // For other fields, just update the value directly
@@ -81,14 +85,14 @@ const GroupForm = ({ courses, isEditing, groupData, onSave, onCancel, teachers }
     e.preventDefault();
     
     // Ensure we submit the form data with proper values
-  
     const submissionData = {
       name: formData.name,
-      courseId: formData.courseId,
-      teacherId: formData.teacherId,
-      teacherName: formData.teacherName
+      departmentId: formData.departmentId,
+      mentorId: formData.mentorId,
+      maxCapacity: parseInt(formData.maxCapacity),
+      description: formData.description
     };
-    console.log(submissionData)
+    
     onSave(submissionData);
   };
 
@@ -129,42 +133,71 @@ const GroupForm = ({ courses, isEditing, groupData, onSave, onCancel, teachers }
 
         <div className="mb-4">
           <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
-            Course
+            Department
           </label>
           <select
-            name="courseId"
+            name="departmentId"
             required
             className={`w-full p-2 border rounded-md ${getSelectBgClass()} ${colors.text} border-gray-600`}
-            value={formData.courseName}
+            value={formData.departmentId}
             onChange={handleChange}
           >
-            <option value="">Select a course</option>
-            {courses.map(course => (
-              <option key={course.id} value={course.id}>
-                {course.courseName}
+            <option value="">Select a department</option>
+            {departments.map(department => (
+              <option key={department._id} value={department._id}>
+                {department.name}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-4">
           <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
-            Assign Teacher
+            Assign Mentor (Teacher)
           </label>
           <select
-            name="teacherId"
-            required
+            name="mentorId"
             className={`w-full p-2 border rounded-md ${getSelectBgClass()} ${colors.text} border-gray-600`}
-            value={formData.teacherName}
+            value={formData.mentorId}
             onChange={handleChange}
           >
-            <option value="">Assign a teacher</option>
+            <option value="">Assign a mentor (optional)</option>
             {teachers.map(teacher => (
-              <option key={teacher.id} value={teacher.id}>
+              <option key={teacher._id} value={teacher._id}>
                 {`${teacher.firstName} ${teacher.lastName}`}
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="mb-4">
+          <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
+            Max Capacity
+          </label>
+          <input
+            type="number"
+            name="maxCapacity"
+            min="1"
+            required
+            placeholder="Enter maximum capacity"
+            className={`w-full p-2 border rounded-md bg-transparent ${colors.text} border-gray-600`}
+            value={formData.maxCapacity}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="mb-6">
+          <label className={`block text-sm font-medium mb-1 ${colors.text}`}>
+            Description
+          </label>
+          <textarea
+            name="description"
+            placeholder="Enter group description"
+            className={`w-full p-2 border rounded-md bg-transparent ${colors.text} border-gray-600`}
+            value={formData.description}
+            onChange={handleChange}
+            rows="3"
+          />
         </div>
 
         <div className="flex justify-end space-x-3">

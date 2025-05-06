@@ -1,23 +1,53 @@
 const express = require('express');
 const router = express.Router();
-const { createGroup, assignStudent, removeStudent, assignTeacher, getGroupResources, getGroupClasses, getGroups, getAllGroups} = require('./../controller/groupController');
+const {
+  createGroup,
+  assignStudent,
+  removeStudent,
+  assignTeacher,
+  getGroups,
+  getAllGroups,
+  getGroupsByDepartment,
+  updateGroup,
+  deleteGroup
+} = require('../controller/groupController');
 
-router.post('/courses/:courseId/groups/create', createGroup);
+const roleCheck = (roles) => {
+  return (req, res, next) => {
+    const userRole = req.user.role;
+    
+    if (roles.includes(userRole)) {
+      return next();
+    }
+    return res.status(403).json({ message: 'Forbidden' });
+  };
+};
+
+// Create group in a department
+router.post('/department/:departmentId/create', roleCheck(['admin']), createGroup);
+
+// Get all groups for a department
+router.get('/department/:departmentId', getGroupsByDepartment);
 
 // Assign a student to a group
-router.post('/:groupId/assign', assignStudent);
+router.post('/:groupId/assign-student', roleCheck(['admin', 'teacher']), assignStudent);
 
 // Remove a student from a group
-router.delete('/:groupId/remove', removeStudent);
+router.delete('/:groupId/remove-student', roleCheck(['admin', 'teacher']), removeStudent);
 
-router.post('/:groupId/assignTeacher', assignTeacher);
+// Assign teacher to a group
+router.post('/:groupId/assign-teacher', roleCheck(['admin']), assignTeacher);
 
-router.get('/:groupId/classes', getGroupClasses);
+// Update group
+router.put('/:id', roleCheck(['admin', 'teacher']), updateGroup);
 
-router.get("/:groupId/resources", getGroupResources);
+// Delete group
+router.delete('/:id', roleCheck(['admin']), deleteGroup);
 
-router.get("/:courseId/allGroups", getGroups)
-router.get("/", getAllGroups);
+// Get groups based on user role (admin, teacher, student)
+router.get('/', getGroups);
 
+// Get all groups (admin only)
+router.get('/all', roleCheck(['admin']), getAllGroups);
 
 module.exports = router;

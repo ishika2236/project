@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
+import { useTheme } from "../../context/ThemeProvider"; 
 
 const StudentEnroll = () => {
   const [courseName, setCourseName] = useState("");
   const [message, setMessage] = useState("");
+  const { themeConfig, theme, isDark } = useTheme();
 
   const handleEnroll = (e) => {
     e.preventDefault();
@@ -16,31 +18,57 @@ const StudentEnroll = () => {
     setCourseName("");
   };
 
+  // Get current theme's styles
+  const currentTheme = themeConfig[theme];
+
   return (
     <div className="flex">
-      {/* Sidebar */}
-      <Sidebar role="student" />
-
-      {/* Main Dashboard Section */}
-      <div className="flex-1 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-6">
-        {/* Navbar */}
-        <Navbar userName="Student" />
-        <div className="p-6 max-w-md mx-auto">
-          <h1 className="text-2xl font-bold mb-4">Enroll in a New Course</h1>
-          <form onSubmit={handleEnroll} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <label className="block mb-2 text-sm font-medium">Course Name</label>
-            <input
-              type="text"
-              value={courseName}
-              onChange={(e) => setCourseName(e.target.value)}
-              placeholder="Enter course name..."
-              className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-            />
-            <button type="submit" className="mt-4 w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">
-              Enroll
-            </button>
-            {message && <p className="mt-2 text-green-500">{message}</p>}
-          </form>
+     
+      <div className="flex-1 flex flex-col">
+        
+        
+        {/* Main Dashboard Section with themed background */}
+        <div className={`flex-1 min-h-screen ${currentTheme.background} p-6`}>
+          <div className="max-w-md mx-auto">
+            <h1 className={`text-2xl font-bold mb-4 ${currentTheme.text}`}>
+              Enroll in a New Course
+            </h1>
+            
+            {/* Card with themed styling */}
+            <div className={`${currentTheme.card} p-6 rounded-lg`}>
+              <form onSubmit={handleEnroll}>
+                <label className={`block mb-2 text-sm font-medium ${currentTheme.text}`}>
+                  Course Name
+                </label>
+                <input
+                  type="text"
+                  value={courseName}
+                  onChange={(e) => setCourseName(e.target.value)}
+                  placeholder="Enter course name..."
+                  className={`w-full p-2 border rounded-lg ${
+                    isDark 
+                      ? "bg-gray-700 border-gray-600 text-white" 
+                      : "bg-white border-indigo-100 text-gray-800"
+                  }`}
+                />
+                
+                {/* Themed button based on current theme */}
+                <button 
+                  type="submit" 
+                  className={`mt-4 w-full p-2 rounded-lg ${currentTheme.button.primary}`}
+                >
+                  Enroll
+                </button>
+                
+                {/* Success message with themed text */}
+                {message && (
+                  <p className={`mt-2 ${currentTheme.gradient.text}`}>
+                    {message}
+                  </p>
+                )}
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>

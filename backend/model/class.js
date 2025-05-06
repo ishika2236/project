@@ -1,52 +1,137 @@
-
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const { Schema } = mongoose;
 
-const classSchema = new Schema({
+const ClassSchema = new Schema({
+  // Basic Class Information
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  students: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref:'User'
+    }
+  ],
+  
+  // Connections to existing models
   course: {
     type: Schema.Types.ObjectId,
     ref: 'Course',
     required: true
   },
-  name: {
-    type: String,
+  group: {
+    type: Schema.Types.ObjectId,
+    ref: 'Group',
     required: true
   },
-  description: {
-    type: String
-  },
+  
+  // Teacher - could be derived from course but kept for quick access
   teacher: {
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  group: {
-    type: String, 
-    required: true
+  
+  // Class specific info (that might differ from course-level info)
+  description: {
+    type: String
   },
-  students: [{
-    type: Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  startDate: {
-    type: Date,
-    default: Date.now
+  
+  // Location
+  location: {
+    building: String,
+    room: String,
+    gpsCoordinates: {
+      latitude: Number,
+      longitude: Number,
+      radius: {
+        type: Number,
+        default: 50 // Default radius in meters for attendance geofencing
+      }
+    }
   },
-  endDate: {
-    type: Date,
-    default: Date.now
-  },
-  schedule: {
-    dayOfWeek: [Number], 
+  
+  // Schedule
+  schedule: [{
+    day: {
+      type: String,
+      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    },
     startTime: String,
     endTime: String
-  },
+  }],
+  
+  // Status
   isActive: {
     type: Boolean,
     default: true
+  },
+  
+  
+  sessions: [{
+    date: {
+      type: Date,
+      required: true
+    },
+    startTime: {
+      type: Date,
+      required: true
+    },
+    endTime: {
+      type: Date,
+      required: true
+    },
+    topic: String,
+    description: String,
+    status: {
+      type: String,
+      enum: ['scheduled', 'in-progress', 'completed', 'cancelled'],
+      default: 'scheduled'
+    },
+    
+    // Attendance configuration for this session
+    attendanceEnabled: {
+      type: Boolean,
+      default: false
+    },
+    attendanceWindow: {
+      startTime: Date,
+      endTime: Date
+    },
+    
+    // Notes for the session
+    notes: String
+  }],
+  
+  // Class-level attendance settings (defaults)
+  attendanceSettings: {
+    enabled: {
+      type: Boolean,
+      default: true
+    },
+    verificationMethods: {
+      facial: {
+        type: Boolean,
+        default: true
+      },
+      geolocation: {
+        type: Boolean,
+        default: true
+      },
+      manual: {
+        type: Boolean,
+        default: true
+      }
+    },
+    defaultWindowMinutes: {
+      type: Number,
+      default: 15 // Default minutes for attendance window
+    }
   }
 }, {
   timestamps: true
 });
 
-module.exports = mongoose.model('Class', classSchema);
+module.exports = mongoose.model('Class', ClassSchema);

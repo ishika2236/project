@@ -7,18 +7,20 @@ import ThemeProvider from './context/ThemeProvider.jsx'
 import { BrowserRouter } from 'react-router-dom'
 import store from './app/store.js'
 import { Provider } from 'react-redux'
+// import AuthSetup from './utils/AuthSetup.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
+  // <StrictMode>
     <BrowserRouter>
       <ThemeProvider>
-        <AuthProvider>
+        {/* <AuthProvider> */}
           <Provider store={store}>
-            <App />
+            {/* <AuthSetup/> */}
+              <App />
           </Provider>
-        </AuthProvider>
+        {/* </AuthProvider> */}
       </ThemeProvider>
     </BrowserRouter>
     
-  </StrictMode>,
+  // </StrictMode>,
 )

@@ -78,24 +78,47 @@ export const enrollInCourse = createAsyncThunk(
   }
 );
 
-// New thunk for updating a course
 export const updateCourse = createAsyncThunk(
-    'courses/updateCourse',
-    async ({ courseId, courseData }, { rejectWithValue }) => {
-      try {
-        return await courseService.updateCourse(courseId, courseData);
-      } catch (error) {
-        return rejectWithValue(error.response?.data?.message || error.message);
-      }
+  'courses/updateCourse',
+  async ({ courseId, courseData }, thunkAPI) => {
+    try {
+      return await courseService.updateCourse(courseId, courseData);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
     }
-  );
-// New thunk for deleting a course
+  }
+);
+
 export const deleteCourse = createAsyncThunk(
   'courses/delete',
   async (courseId, thunkAPI) => {
     try {
       return await courseService.deleteCourse(courseId);
     } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+// Add missing thunk to match backend
+export const fetchCoursesByDepartment = createAsyncThunk(
+  'courses/fetchByDepartment',
+  async (departmentId, thunkAPI) => {
+    try {
+      return await courseService.getCoursesByDepartment(departmentId);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+export const assignTeacherToCourse = createAsyncThunk(
+  'courses/assignTeacher',
+  async ({ courseId, teacherId, groupId }, thunkAPI) => {
+    try{
+      return await courseService.assignTeacherToCourse(courseId, teacherId, groupId);
+    }
+    catch(error)
+    {
       return thunkAPI.rejectWithValue(error.response?.data || error.message);
     }
   }

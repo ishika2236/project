@@ -3,7 +3,9 @@ const jwt = require('jsonwebtoken');
 const User = require('../model/user');
 const Embedding = require('../model/embedding'); 
 const upload = require('../utils/multerConfig');
-
+const Department = require('../model/department');
+const Groups = require('../model/groups');
+const mongoose = require('mongoose');
 // Login controller remains unchanged
 const login = async (req, res) => {
     try {
@@ -30,13 +32,7 @@ const login = async (req, res) => {
 
         res.status(200).json({
             token,
-            user: {
-                id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                role: user.role
-            }
+            user
         });
 
     } catch (error) {
@@ -45,12 +41,11 @@ const login = async (req, res) => {
     }
 };
 
-// Updated Signup controller
 const signup = async (req, res) => {
     try {
         upload.single('profileImage')(req, res, async (err) => {
             if (err) {
-                return res.status(400).json({ message: 'Image upload failed' });
+                return res.status(400).json({ message: `Image upload failed ${err}` });
             }
 
             const {
@@ -65,12 +60,13 @@ const signup = async (req, res) => {
                 rollNumber,
                 admissionYear,
                 group,
+                department, // Added department ID
                 employeeId,
                 dateOfBirth,
                 gender,
                 faceEmbedding
             } = req.body;
-            console.log(req.body);
+            // console.log(req.body);
             
             // Parse face embedding data
             const parsedEmbedding = JSON.parse(faceEmbedding);
@@ -83,6 +79,27 @@ const signup = async (req, res) => {
             const existingUser = await User.findOne({ email });
             if (existingUser) {
                 return res.status(400).json({ message: 'User already exists' });
+            }
+
+            // Validate department ID if provided
+            let departmentExists = null;
+            let groupExists = null;
+            if (department) {
+                 departmentExists = await Department.findById(department);
+                if (!departmentExists) {
+                    return res.status(400).json({ message: 'Department not found' });
+                }
+            }
+
+            // Validate group ID if provided
+            if (group) {
+                if (mongoose.Types.ObjectId.isValid(group)) {
+                    groupExists = await Groups.findById(group);
+                    if (!groupExists) {
+                        return res.status(400).json({ message: 'Group not found' });
+                    }
+                
+                }
             }
 
             // Hash password
@@ -101,12 +118,12 @@ const signup = async (req, res) => {
                 currentAddress,   
                 rollNumber,
                 admissionYear,
-                group: group ? group.toLowerCase() : "",  
+                department: departmentExists,
+                group: groupExists,
                 employeeId,
                 dateOfBirth,
                 gender: gender ? gender.toLowerCase() : "",  
                 profileImage: req.file ? req.file.path : null,
-                
             });
 
             // Save the user to get an _id
@@ -125,7 +142,7 @@ const signup = async (req, res) => {
             // Update the user with the reference to the embedding
             user.faceEmbedding = embeddingDoc._id;
             await user.save();
-            console.log(user, embeddingDoc);
+            // console.log(user, embeddingDoc);
             
             // Generate JWT token
             const token = jwt.sign(
@@ -137,14 +154,7 @@ const signup = async (req, res) => {
             res.status(201).json({
                 message: 'User created successfully',
                 token,
-                user: {
-                    id: user._id,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email,
-                    role: user.role,
-                    profileImage: user.profileImage 
-                }
+                user
             });
         });
 
@@ -187,4 +197,21 @@ const me = async (req, res) => {
 };
 
 
-module.exports = { login, signup, me };
+const getDepartments = async (req, res) => {
+  try {
+    const departments = await Department.find({}, '_id name code groups')
+      .populate('groups', '_id name maxCapacity'); 
+
+    res.status(200).json(departments);
+  } catch (error) {
+    console.error('Error fetching departments:', error);
+    res.status(500).json({ message: 'Failed to fetch departments' });
+  }
+};
+
+module.exports = { getDepartments };
+
+const getGroups = async(req, res) => {
+
+}
+module.exports = { login, signup, me , getDepartments, getGroups};

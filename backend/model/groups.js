@@ -19,10 +19,22 @@ const GroupSchema = new Schema({
     type: Number,
     default: 100
   },
-  course: {
+  department: {
     type: Schema.Types.ObjectId,
-    ref: 'Course',
+    ref: 'Department',
     required: true
+  },
+  // Add courses field to track assigned courses
+  courses: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Course'
+  }],
+  description: {
+    type: String
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

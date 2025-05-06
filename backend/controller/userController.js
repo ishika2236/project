@@ -1,4 +1,5 @@
 const User = require('./../model/user')
+const Group = require('./../model/groups')
 const getAllUsers = async (req, res) => {
     try {
       // Pagination
@@ -11,17 +12,19 @@ const getAllUsers = async (req, res) => {
       if (req.query.role) {
         filter.role = req.query.role;
       }
-  
+      
+
       // Execute query with pagination
       const users = await User.find(filter)
         .select('-password')
         .skip(skip)
         .limit(limit)
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .populate('group');
   
       // Get total count for pagination
       const total = await User.countDocuments(filter);
-  
+      console.log(typeof(users[0].group))
       res.json({
         users,
         pagination: {
@@ -49,7 +52,8 @@ const getAllUsers = async (req, res) => {
         .select('-password')
         .skip(skip)
         .limit(limit)
-        .sort({ lastName: 1, firstName: 1 });
+        .sort({ lastName: 1, firstName: 1 })
+        .populate('department');
   
       // Get total count for pagination
       const total = await User.countDocuments({ role: 'teacher' });

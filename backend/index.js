@@ -5,12 +5,14 @@ require('dotenv').config();
 const cors = require('cors');
 
 const app = express();
-const authMiddleware = require('./middleware/authMiddleware')
+const {authMiddleware }= require('./middleware/authMiddleware')
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courseRoutes');
 const groupRoutes = require('./routes/groupRoutes');
 const userRoutes = require('./routes/userRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
 const faceRecognitionRoutes = require('./routes/faceRecognition');
+const classRoutes = require('./routes/classRoutes');
 
 
 const server = http.createServer(app);
@@ -21,7 +23,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
     origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
 }));
 
@@ -31,6 +33,8 @@ app.use('/api/face-recognition', faceRecognitionRoutes);
 app.use('/api/courses',authMiddleware, courseRoutes);
 app.use('/api/groups',authMiddleware, groupRoutes);
 app.use('/api/users',authMiddleware, userRoutes);
+app.use('/api/departments', authMiddleware, departmentRoutes);
+app.use('/api/classes', classRoutes);
 
 // Connect to MongoDB
 connectDB();

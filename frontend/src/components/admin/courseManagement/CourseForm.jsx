@@ -1,8 +1,13 @@
 // CourseForm.js
 import React from 'react';
+import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 
-const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditing }) => {
+const CourseForm = ({ formData, handleInputChange, onSubmit, onCancel, colors, isEditing, departments, teachers }) => {
+  // Get departments from Redux store
+  
 
+  
   return (
     <form onSubmit={onSubmit} className="p-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -12,7 +17,7 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
             type="text"
             name="courseName"
             value={formData.courseName}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
             required
           />
@@ -24,7 +29,7 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
             type="text"
             name="courseCode"
             value={formData.courseCode}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
             required
           />
@@ -35,35 +40,46 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
           <textarea
             name="courseDescription"
             value={formData.courseDescription}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
             rows="3"
-     
+            required
           />
         </div>
         
         <div>
           <label className={`block mb-1 ${colors.text}`}>Course Coordinator</label>
-          <input
-            type="text"
+          <select
             name="courseCoordinator"
-            value={formData.courseCoordinator}
-            onChange={setFormData}
+            value={formData.courseCoordinator || ''}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
-          
-          />
+          >
+            <option className='text-white' value="">Select Coordinator (Optional)</option>
+            {teachers && teachers.map(teacher => (
+              <option key={teacher._id} value={teacher._id}>
+               { `${teacher.firstName }`}
+              </option>
+            ))}
+          </select>
         </div>
         
         <div>
           <label className={`block mb-1 ${colors.text}`}>Department</label>
-          <input
-            type="text"
+          <select
             name="department"
-            value={formData.department}
-            onChange={setFormData}
+            value={formData.department || ''}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
-            required
-          />
+            // required
+          >
+            <option value="">Select Department</option>
+            {departments && departments.map(dept => (
+              <option key={dept._id} value={dept._id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
         </div>
         
         <div>
@@ -72,9 +88,10 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
             type="text"
             name="academicYear"
             value={formData.academicYear}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
             required
+            placeholder="e.g. 2024-2025"
           />
         </div>
         
@@ -83,7 +100,7 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
           <select
             name="semester"
             value={formData.semester}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
             required
           >
@@ -100,7 +117,7 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
             type="number"
             name="credits"
             value={formData.credits}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
             min="1"
             required
@@ -113,7 +130,7 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
             type="number"
             name="maxCapacity"
             value={formData.maxCapacity}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className={`w-full p-2 rounded-md bg-gray-800 border border-gray-700 ${colors.text}`}
             min="1"
             required
@@ -125,7 +142,7 @@ const CourseForm = ({ formData, setFormData, onSubmit, onCancel, colors, isEditi
             type="checkbox"
             name="isActive"
             checked={formData.isActive}
-            onChange={setFormData}
+            onChange={handleInputChange}
             className="mr-2"
           />
           <label className={colors.text}>Active Course</label>

@@ -3,7 +3,7 @@ import { Users, Clock } from 'lucide-react';
 import { useTheme } from '../../../../context/ThemeProvider';
 import StudentTable from '../group/StudentTable';
 
-const GroupView = ({ group, course, students, searchTerm, onStudentSelect }) => {
+const GroupView = ({ group, department, students, courses, searchTerm, onStudentSelect }) => {
   const { isDark } = useTheme();
   
   const filteredStudents = students.filter(student => 
@@ -19,7 +19,7 @@ const GroupView = ({ group, course, students, searchTerm, onStudentSelect }) => 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Students in {group.name}</h2>
+        <h2 className="text-xl font-semibold">{group.name} - {department.name} Department</h2>
         <div className="flex gap-2">
           <div className={`flex items-center px-3 py-1 rounded-md ${isDark ? 'bg-purple-900/30 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>
             <Users size={16} className="mr-1" />
@@ -34,7 +34,8 @@ const GroupView = ({ group, course, students, searchTerm, onStudentSelect }) => 
       
       <StudentTable 
         students={filteredStudents} 
-        onStudentSelect={onStudentSelect} 
+        onStudentSelect={onStudentSelect}
+        courses={courses}
       />
     </div>
   );

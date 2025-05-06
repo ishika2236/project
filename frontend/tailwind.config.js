@@ -1,0 +1,75 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+    content: [
+      "./index.html",
+      "./src/**/*.{js,ts,jsx,tsx}",
+    ],
+    theme: {
+      extend: {
+        colors: {
+          anti_flash_white: {
+            DEFAULT: "#EFF0F1",
+            100: "#2d3033",
+            200: "#596067",
+            300: "#889098",
+            400: "#bbc0c4",
+            500: "#eff0f1",
+            600: "#f2f3f4",
+            700: "#f5f6f6",
+            800: "#f8f9f9",
+            900: "#fcfcfc",
+          },
+          white: {
+            DEFAULT: "#FFFFFF",
+            100: "#333333",
+            200: "#666666",
+            300: "#999999",
+            400: "#cccccc",
+            500: "#ffffff",
+            600: "#ffffff",
+            700: "#ffffff",
+            800: "#ffffff",
+            900: "#ffffff",
+          },
+          charcoal: {
+            DEFAULT: "#313D4E",
+            100: "#0a0c10",
+            200: "#14191f",
+            300: "#1d252f",
+            400: "#27313f",
+            500: "#313d4e",
+            600: "#4f627d",
+            700: "#7288a7",
+            800: "#a1b0c4",
+            900: "#d0d7e2",
+          },
+          pigment_green: {
+            DEFAULT: "#00A63E",
+            100: "#00220c",
+            200: "#004319",
+            300: "#006525",
+            400: "#008731",
+            500: "#00a63e",
+            600: "#00ed57",
+            700: "#32ff7d",
+            800: "#76ffa8",
+            900: "#bbffd4",
+          },
+          electric_violet: {
+            DEFAULT: "#9810FA",
+            100: "#1f0134",
+            200: "#3e0268",
+            300: "#5c039c",
+            400: "#7b04d0",
+            500: "#9810fa",
+            600: "#ad3ffb",
+            700: "#c16ffc",
+            800: "#d69ffd",
+            900: "#eacffe",
+          },
+        }
+      },
+    },
+    plugins: [],
+  }
+  

@@ -25,10 +25,6 @@ const courseSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],
-    groups: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Group'
-    }],
     enrolledStudents: [{
         student: {
             type: mongoose.Schema.Types.ObjectId,
@@ -56,7 +52,6 @@ const courseSchema = new mongoose.Schema({
         required: true,
         min: 1
     },
-
     prerequisites: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Course'
@@ -70,7 +65,7 @@ const courseSchema = new mongoose.Schema({
         default: true
     },
     syllabus: {
-        type: String ,
+        type: String,
     },
     assignments: [{
         title: String,
@@ -79,8 +74,9 @@ const courseSchema = new mongoose.Schema({
         totalMarks: Number
     }],
     department: {
-        type: String,
-        required: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Department',
+        // required: true
     }
 }, {
     timestamps: true

@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-
 const userSchema = new mongoose.Schema({
     firstName: {
         type: String,
@@ -48,14 +47,10 @@ const userSchema = new mongoose.Schema({
     // Fields specific to students
     rollNumber: {
         type: String,
-        sparse: true // Allows null/undefined values
+        sparse: true
     },
     admissionYear: {
         type: Number,
-        sparse: true
-    },
-    group: {
-        type: String,
         sparse: true
     },
     // Fields specific to teachers
@@ -63,6 +58,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         sparse: true
     },
+    teachingAssignments: [{
+        course: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Course'
+        },
+        group: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Group'
+        }
+    }],
     dateOfBirth: {
         type: Date,
         required: true
@@ -72,13 +77,31 @@ const userSchema = new mongoose.Schema({
         enum: ['male', 'female', 'other'],
         required: true
     },
+    department: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Department'
+    },
+    group: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Group'
+    },
+    enrolledCourses: [{
+        course: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Course'
+        },
+        enrollmentDate: {
+            type: Date,
+            default: Date.now
+        }
+    }],
     // Profile image fields
     profileImage: {
-        type: String, // URL to stored image
+        type: String,
         default: null
     },
     faceEmbedding: {
-       type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Embedding'
     },
     createdAt: {
@@ -90,8 +113,6 @@ const userSchema = new mongoose.Schema({
         default: Date.now
     }
 });
-
-
 
 const User = mongoose.model('User', userSchema);
 

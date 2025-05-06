@@ -60,7 +60,7 @@ const GroupsList = ({ groups, onEdit, onView, onDelete }) => {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (window.confirm('Are you sure you want to delete this group?')) {
-                      onDelete(group.id);
+                      onDelete(group._id);
                     }
                   }}
                   className="p-1 rounded-full hover:bg-gray-700"

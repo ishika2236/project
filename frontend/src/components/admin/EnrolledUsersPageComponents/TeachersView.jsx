@@ -51,7 +51,7 @@ const TeachersView = ({
                 No teachers found matching your filters.
               </div>
             ) : (
-              currentTeachers.map(teacher => (
+              currentTeachers?.map(teacher => (
                 <TeacherRow 
                   key={teacher.id} 
                   teacher={teacher}
@@ -90,25 +90,26 @@ const TeacherRow = ({
     >
       <div className="col-span-3 flex items-center gap-3">
         <UserAvatar 
-          firstName={teacher.firstName} 
+          firstName={teacher?.firstName} 
           theme={theme} 
           currentTheme={currentTheme} 
         />
         <UserInfo 
-          firstName={teacher.firstName} 
-          lastName={teacher.lastName} 
-          email={teacher.email} 
+          firstName={teacher?.firstName} 
+          lastName={teacher?.lastName} 
+          email={teacher?.email} 
           currentTheme={currentTheme} 
         />
       </div>
       <div className={`col-span-2 ${currentTheme.text} flex items-center`}>
-        {teacher.employeeId}
+        {teacher?.employeeId}
       </div>
       <div className={`col-span-3 ${currentTheme.text} flex items-center`}>
-        {teacher.department}
+        {teacher?.department?.name}
       </div>
+      {console.log(teacher)}
       <div className={`col-span-2 ${currentTheme.text} flex items-center`}>
-        {teacher.courses.join(', ')}
+        {teacher.teachingAssignments?.courseName?.join(', ')}
       </div>
       <div className="col-span-2 flex items-center">
         <StatusBadge status={teacher.status} />

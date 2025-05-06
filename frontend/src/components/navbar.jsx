@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FaUser, FaBell, FaSignOutAlt, FaCog } from "react-icons/fa";
 import { BsMoon, BsSun } from "react-icons/bs";
 import { useTheme } from "../context/ThemeProvider";
-import { useAuth } from "../context/AuthProvider";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../app/features/auth/authThunks";
 
 const Navbar = ({
   title = "App Title",
@@ -12,7 +13,6 @@ const Navbar = ({
   showProfile = true,
   onProfileClick,
   onSettingsClick,
-  onLogoutClick,
   customLogo,
   className = "",
   notificationsData = [],
@@ -20,7 +20,10 @@ const Navbar = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const { theme, themeConfig, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  
+  // Redux state and dispatch
+  const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector(state => state.auth);
 
   const toggleDropdown = () => {
     setShowDropdown(!showDropdown);
@@ -46,18 +49,16 @@ const Navbar = ({
   };
 
   const handleLogout = () => {
-    if (onLogoutClick) {
-      onLogoutClick();
-    } else if (logout) {
-      logout();
+    if (onSettingsClick) {
+      onSettingsClick();
     }
+    dispatch(logout());
     setShowDropdown(false);
   };
 
   // Determine display name
   const displayName = user?.firstName || userName;
 
- 
   const iconColor = theme === "dark" ? "text-white" : "text-gray-800";
   const hoverBg = theme === "dark" ? "hover:bg-gray-700" : "hover:bg-gray-200";
   const dropdownBg = theme === "dark" ? "bg-[#121A22]" : "bg-white";
@@ -66,7 +67,7 @@ const Navbar = ({
 
   return (
     <nav
-      className={`flex justify-between items-center p-4 shadow-md ${themeConfig[theme].gradientBackground} ${className}`}
+      className={`flex justify-between items-center p-4 z-100 shadow-md ${themeConfig[theme].gradientBackground} ${className}`}
     >
       <div className="flex items-center space-x-2">
         {customLogo ? (
@@ -132,7 +133,7 @@ const Navbar = ({
         )}
 
         {/* Profile Dropdown */}
-        {showProfile && (
+        {showProfile && isAuthenticated && (
           <div className="relative">
             <button 
               onClick={toggleDropdown} 

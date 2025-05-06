@@ -1,5 +1,5 @@
 // Main Component - EnrolledUsersPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTheme } from './../../context/ThemeProvider';
 import { 
   Search, Download, Filter, ChevronDown, 
@@ -34,11 +34,22 @@ const EnrolledUsersPage = () => {
     error: { teachers: teachersError, students: studentsError }
   } = usersState;
 
-  // Get unique courses and groups
-  const courses = [...new Set(mockStudents.map(student => student.course))];
-  const groups = selectedCourse 
-    ? [...new Set(mockStudents.filter(s => s.course === selectedCourse).map(s => s.group))]
-    : [...new Set(mockStudents.map(s => s.group))];
+
+
+// ...
+
+const courses = useMemo(() => {
+  return [...new Set(mockStudents.map(student => student.course))];
+}, []); // Empty deps because mockStudents doesn't change
+
+const groups = useMemo(() => {
+  if (selectedCourse) {
+    return [...new Set(mockStudents.filter(s => s.course === selectedCourse).map(s => s.group))];
+  } else {
+    return [...new Set(mockStudents.map(s => s.group))];
+  }
+}, [selectedCourse]); // Depends on selectedCourse
+
 
     const dispatch = useDispatch();
   useEffect(() => {
@@ -55,7 +66,7 @@ const EnrolledUsersPage = () => {
       
     };
     fetchInitialData();
-    console.log("teachers in users page:" ,  teachers);
+    // console.log("teachers in users page:" ,  teachers);
     
   }, [dispatch]);
 

@@ -10,6 +10,7 @@ const ProfileCameraCapture = ({ onImageCapture }) => {
   const [faceEmbedding, setFaceEmbedding] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showVideoCanvas, setShowVideoCanvas] = useState(false);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -38,9 +39,6 @@ const ProfileCameraCapture = ({ onImageCapture }) => {
         console.log("Face detection models loaded successfully");
         setIsModelLoaded(true);
         setLoading(false);
-        
-        // Automatically start camera after models are loaded
-        startCamera();
       } catch (error) {
         console.error("Error loading face detection models:", error);
         setError(`Failed to load face detection models: ${error.message}`);
@@ -51,61 +49,89 @@ const ProfileCameraCapture = ({ onImageCapture }) => {
     loadModels();
   }, []);
 
-  // Start face detection when camera becomes active
-  useEffect(() => {
-    if (isCameraActive && isModelLoaded) {
-      console.log("Camera active and models loaded, starting face detection");
-      startFaceDetection();
-    }
-  }, [isCameraActive, isModelLoaded]);
-
   // Start camera
   const startCamera = async () => {
     try {
       setLoading(true);
       setError(null);
+      setShowVideoCanvas(true); // Show video and canvas when starting camera
       
       console.log("Requesting camera access...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 480, height: 360 } // Reduced size
+        video: { width: 480, height: 360 }
       });
       console.log("Camera access granted");
-      setIsCameraActive(true);
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        
-        // Function to handle when video is ready
-        const handleVideoReady = () => {
-          console.log("Video metadata loaded, attempting to play");
-          videoRef.current.play()
-            .then(() => {
-              console.log("Video started playing successfully");
-              setIsCameraActive(true);
-              setLoading(false);
-            })
-            .catch(err => {
-              console.error("Error playing video:", err);
-              setError(`Failed to play video: ${err.message}`);
-              setLoading(false);
-            });
-        };
-        
-        // Set up event listener for when metadata is loaded
-        videoRef.current.onloadedmetadata = handleVideoReady;
-        
-        // Fallback if metadata already loaded
-        if (videoRef.current.readyState >= 2) {
-          console.log("Video ready state is already ≥2, calling handleVideoReady immediately");
-          handleVideoReady();
-        }
+      if (!videoRef.current) {
+        console.error("Video element reference is null");
+        setError("Could not access video element. Please try again.");
+        setLoading(false);
+        setShowVideoCanvas(false);
+        return;
+      }
+      
+      console.log("videoRef.current: ", videoRef.current);
+      videoRef.current.srcObject = stream;
+      console.log("Stream attached to video element. Stream tracks:", stream.getTracks().length);
+      
+      // Function to handle when video is ready
+      const handleVideoReady = () => {
+        console.log("Video metadata loaded, attempting to play");
+        videoRef.current.play()
+        .then(() => {
+          console.log("Video started playing successfully. Video element state:", {
+            paused: videoRef.current.paused,
+            readyState: videoRef.current.readyState,
+            videoWidth: videoRef.current.videoWidth,
+            videoHeight: videoRef.current.videoHeight
+          });
+          setIsCameraActive(true);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error("Error playing video:", err);
+          setError(`Failed to play video: ${err.message}`);
+          setLoading(false);
+          setShowVideoCanvas(false);
+        });
+      };
+      
+      videoRef.current.onloadedmetadata = handleVideoReady;
+      
+      // Fallback if metadata already loaded
+      if (videoRef.current.readyState >= 2) {
+        console.log("Video ready state is already ≥2, calling handleVideoReady immediately");
+        handleVideoReady();
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
       setError(`Could not access the camera: ${error.message}. Please make sure you've given permission.`);
       setLoading(false);
+      setShowVideoCanvas(false);
     }
   };
+
+  // Trigger face detection when camera becomes active and video is playing
+  useEffect(() => {
+    if (isCameraActive && isModelLoaded && videoRef.current) {
+      const video = videoRef.current;
+      
+      // Only start face detection when video is actually playing
+      if (video.readyState >= 2 && !video.paused && video.videoWidth > 0) {
+        console.log("Video is playing with dimensions available, starting face detection");
+        startFaceDetection();
+      } else {
+        // Wait for video to start playing with dimensions
+        const checkVideoReady = setInterval(() => {
+          if (video.readyState >= 2 && !video.paused && video.videoWidth > 0) {
+            console.log(`Video ready: dimensions ${video.videoWidth}x${video.videoHeight}`);
+            clearInterval(checkVideoReady);
+            startFaceDetection();
+          }
+        }, 100);
+      }
+    }
+  }, [isCameraActive, isModelLoaded]);
 
   // Stop camera
   const stopCamera = () => {
@@ -114,6 +140,7 @@ const ProfileCameraCapture = ({ onImageCapture }) => {
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
       setIsCameraActive(false);
+      setShowVideoCanvas(false); // Hide video and canvas when stopping camera
     }
   };
 
@@ -129,86 +156,61 @@ const ProfileCameraCapture = ({ onImageCapture }) => {
     
     console.log("Starting face detection setup");
     
-    // Setup canvas once video dimensions are available
-    const setupCanvas = () => {
-      // Wait for video dimensions
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.log("Video dimensions not yet available");
-        return false;
-      }
-      
-      console.log(`Video dimensions available: ${video.videoWidth}x${video.videoHeight}`);
-      
-      // Set canvas dimensions
-      const displaySize = { width: video.videoWidth, height: video.videoHeight };
-      canvas.width = displaySize.width;
-      canvas.height = displaySize.height;
-      faceapi.matchDimensions(canvas, displaySize);
-      
-      return true;
-    };
+    // Setup canvas dimensions
+    const displaySize = { width: video.videoWidth, height: video.videoHeight };
+    console.log(`Setting canvas dimensions to: ${displaySize.width}x${displaySize.height}`);
     
-    let canvasReady = setupCanvas();
-    
-    // If canvas not ready, check again
-    if (!canvasReady) {
-      console.log("Canvas not ready, setting up interval to check again");
-      const checkInterval = setInterval(() => {
-        canvasReady = setupCanvas();
-        if (canvasReady) {
-          console.log("Canvas now ready, running detection");
-          clearInterval(checkInterval);
-          runDetection();
-        }
-      }, 100);
-    } else {
-      console.log("Canvas ready immediately, running detection");
-      runDetection();
+    // Ensure we have valid dimensions before proceeding
+    if (displaySize.width === 0 || displaySize.height === 0) {
+      console.error("Video dimensions are zero, cannot setup canvas");
+      return;
     }
+    
+    // Set canvas dimensions
+    canvas.width = displaySize.width;
+    canvas.height = displaySize.height;
+    faceapi.matchDimensions(canvas, displaySize);
     
     // Run continuous face detection
-    function runDetection() {
-      console.log("Starting continuous face detection");
-      const detectionInterval = setInterval(async () => {
-        if (!videoRef.current || !canvasRef.current || !isCameraActive) {
-          console.log("Detection stopped: video or canvas ref is null or camera inactive");
-          clearInterval(detectionInterval);
-          return;
+    console.log("Starting continuous face detection");
+    const detectionInterval = setInterval(async () => {
+      if (!videoRef.current || !canvasRef.current || !isCameraActive) {
+        console.log("Detection stopped: video or canvas ref is null or camera inactive");
+        clearInterval(detectionInterval);
+        return;
+      }
+      
+      try {
+        const detections = await faceapi
+          .detectAllFaces(video, new faceapi.SsdMobilenetv1Options())
+          .withFaceLandmarks();
+        
+        const resizedDetections = faceapi.resizeResults(detections, {
+          width: canvas.width,
+          height: canvas.height
+        });
+        
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw face detections
+        faceapi.draw.drawDetections(canvas, resizedDetections);
+        faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+        
+        // Draw text indicating face detected
+        if (detections.length > 0) {
+          const { box } = detections[0].detection;
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.fillRect(box.x, box.y + box.height + 5, 120, 20);
+          ctx.fillStyle = 'white';
+          ctx.font = '16px Arial';
+          ctx.fillText('Face Detected', box.x + 5, box.y + box.height + 20);
         }
         
-        try {
-          const detections = await faceapi
-            .detectAllFaces(video, new faceapi.SsdMobilenetv1Options())
-            .withFaceLandmarks();
-          
-          const resizedDetections = faceapi.resizeResults(detections, {
-            width: canvas.width,
-            height: canvas.height
-          });
-          
-          const ctx = canvas.getContext("2d");
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
-          // Draw face detections
-          faceapi.draw.drawDetections(canvas, resizedDetections);
-          faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-          
-          // Draw text indicating face detected
-          if (detections.length > 0) {
-            console.log("Face detected in frame");
-            const { box } = detections[0].detection;
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(box.x, box.y + box.height + 5, 120, 20);
-            ctx.fillStyle = 'white';
-            ctx.font = '16px Arial';
-            ctx.fillText('Face Detected', box.x + 5, box.y + box.height + 20);
-          }
-          
-        } catch (error) {
-          console.error("Error detecting faces:", error);
-        }
-      }, 100);
-    }
+      } catch (error) {
+        console.error("Error detecting faces:", error);
+      }
+    }, 100);
   };
 
   // Capture image and face embedding
@@ -260,16 +262,14 @@ const ProfileCameraCapture = ({ onImageCapture }) => {
         const imageUrl = URL.createObjectURL(blob);
         setCapturedImage(imageUrl);
         
-        // console.log("Image captured successfully");
-        // console.log("Face embedding:", embedding.slice(0, 5), "... (length:", embedding.length, ")");
-        
         // Call the parent component's handler with both the image file and embedding
         if (onImageCapture) {
           onImageCapture(imageFile, embedding);
         }
         
-        // Stop the camera
+        // Stop the camera and hide video/canvas
         stopCamera();
+        setShowVideoCanvas(false);
       }, 'image/png');
       
     } catch (error) {
@@ -295,59 +295,90 @@ const ProfileCameraCapture = ({ onImageCapture }) => {
           <p>{error}</p>
         </div>
       )}
-      
+  
       {loading && (
         <div className="p-2 bg-gray-100 rounded text-sm">
           <p>{isModelLoaded ? "Initializing camera..." : "Loading face detection models..."}</p>
         </div>
       )}
-      
-      {!isCameraActive && !loading && (
+  
+      {/* Video and Canvas Container - Only shown when needed */}
+      <div className={`relative w-[480px] h-[360px] bg-black ${showVideoCanvas ? 'block' : 'hidden'}`}>
+        <video
+          ref={videoRef}
+          className="absolute top-0 left-0 w-full h-full object-cover"
+          playsInline
+          muted
+        />
+        <canvas
+          ref={canvasRef}
+          className="absolute top-0 left-0 w-full h-full pointer-events-none"
+        />
+      </div>
+  
+      {/* Button to Start Camera if not active */}
+      {!isCameraActive && !loading && !capturedImage && (
         <button
           type="button"
           onClick={startCamera}
-          className="px-3 py-2 bg-blue-600 text-white rounded-lg flex items-center"
+          className="px-3 py-2 bg-blue-600 text-white rounded-lg"
         >
-          <span className="mr-2">📷</span> Use Camera
+          Start Camera
         </button>
       )}
-      
+  
+      {/* Capture and Stop buttons - Only shown when camera is active */}
       {isCameraActive && (
-        <div className="flex flex-col md:flex-row items-center gap-2">
-          <div className="relative w-full md:w-80 h-60 bg-gray-800 rounded-lg overflow-hidden">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="absolute top-0 left-0 w-full h-full object-cover"
-            />
-            
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full pointer-events-none"
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            onClick={captureImage}
+            className="px-3 py-2 bg-green-600 text-white rounded-lg"
+          >
+            Capture
+          </button>
+          <button
+            type="button"
+            onClick={stopCamera}
+            className="px-3 py-2 bg-red-600 text-white rounded-lg"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+  
+      {/* Preview captured image */}
+      {capturedImage && (
+        <div className="flex flex-col items-center space-y-2">
+          <div className="w-[480px] h-[360px] bg-black flex items-center justify-center">
+            <img
+              src={capturedImage}
+              alt="Captured"
+              className="max-w-full max-h-full object-contain"
             />
           </div>
-          
-          {isModelLoaded && (
-            <div className="flex flex-col space-y-2 self-start mt-2">
-              <button
-                type="button"
-                onClick={captureImage}
-                className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition text-sm"
-              >
-                Capture Photo
-              </button>
-              
-              <button
-                type="button"
-                onClick={stopCamera}
-                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+          <div className="flex space-x-2">
+            <button
+              type="button"
+              onClick={() => {
+                resetCapture();
+                startCamera();
+              }}
+              className="px-3 py-2 bg-yellow-500 text-white rounded-lg"
+            >
+              Retake
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Keep the captured image and do nothing else
+                // The parent component already has the image from onImageCapture
+              }}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg"
+            >
+              Use Photo
+            </button>
+          </div>
         </div>
       )}
     </div>
