@@ -16,7 +16,7 @@ import { clearCourseMessage } from '../../app/features/courses/courseSlice';
 
 import DashboardCharts from '../../components/admin/courseManagement/DashboardCharts';
 import SearchBar from '../../components/admin/courseManagement/SearchBar';
-import CourseList from '../../components/admin/courseManagement/courseList';
+import CourseList from '../../components/admin/courseManagement/CourseList';
 import EditCourseModal from '../../components/admin/courseManagement/ModalComponents/EditCourseModal';
 import ViewCourseModal from '../../components/admin/courseManagement/ModalComponents/ViewCourseModal';
 import CreateCourseModal from '../../components/admin/courseManagement/ModalComponents/CreateCourseModal';
