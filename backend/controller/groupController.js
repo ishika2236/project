@@ -4,6 +4,8 @@ const Group = require('../model/groups');
 const Department = require('../model/department');
 const User = require('../model/user');
 const Course = require('../model/course');
+const Classroom = require('../model/classroom')
+const mongoose = require('mongoose')
 
 // Create group within a department and assign department courses
 const createGroup = async (req, res) => {
@@ -69,7 +71,8 @@ const createGroup = async (req, res) => {
   }
 };
 
-// Assign students to a group
+
+
 const assignStudent = async (req, res) => {
   const { groupId } = req.params;
   const { studentIds } = req.body;
@@ -88,8 +91,8 @@ const assignStudent = async (req, res) => {
         });
       }
     }
-    
-    // Check if adding all students would exceed capacity
+
+    // Check if adding students would exceed capacity
     if (group.students.length + studentIds.length > group.maxCapacity) {
       return res.status(400).json({ 
         message: 'Adding these students would exceed group capacity',
@@ -99,13 +102,12 @@ const assignStudent = async (req, res) => {
       });
     }
 
-    // Find all students to make sure they exist before adding them
+    // Verify students exist and have role 'student'
     const studentsToAdd = await User.find({ 
       _id: { $in: studentIds },
       role: 'student'
     });
-    
-    // Check if all students were found
+
     if (studentsToAdd.length !== studentIds.length) {
       return res.status(404).json({ 
         message: 'One or more students not found or not a student',
@@ -113,31 +115,49 @@ const assignStudent = async (req, res) => {
         requested: studentIds.length
       });
     }
-    
+
     // Add students to the group
     group.students.push(...studentIds);
     await group.save();
-    
-    // Update each student to add this group
+
+    // Update each student to reflect the group and department
     for (const studentId of studentIds) {
-      await User.findByIdAndUpdate(
-        studentId,
-        { 
-          $push: { groups: groupId },
-          $set: { department: group.department }
-        }
-      );
+      await User.findByIdAndUpdate(studentId, {
+        $push: { groups: groupId },
+        $set: { department: group.department }
+      });
     }
-    
-    res.status(200).json({ 
+
+    // 🔁 Now update all classrooms linked to this group
+    const classrooms = await Classroom.find({ group: groupId });
+
+    for (const classroom of classrooms) {
+      const validStudentIds = studentIds
+        .filter(id => id && mongoose.Types.ObjectId.isValid(id)); // Ensure valid ObjectIds
+
+      // Avoid pushing duplicates
+      const newAssigned = validStudentIds.filter(
+        id => !classroom.assignedStudents.includes(id)
+      );
+
+      if (newAssigned.length > 0) {
+        classroom.assignedStudents.push(...newAssigned);
+        await classroom.save();
+      }
+    }
+
+    return res.status(200).json({ 
       groupId, 
       students: studentsToAdd,
-      message: `${studentIds.length} student(s) added successfully`
+      message: `${studentIds.length} student(s) added to group and classrooms successfully`
     });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    return res.status(500).json({ message: err.message });
   }
 };
+
 
 // Remove student from a group
 const removeStudent = async (req, res) => {
@@ -206,12 +226,12 @@ const getGroups = async (req, res) => {
         .populate('mentor')
         .populate('courses');
     } else if (user.role === 'teacher') {
-      groups = await Group.find({ mentor: user._id })
+      groups = await Group.find({ mentor: user.userId })
         .populate('department')
         .populate('students')
         .populate('courses');
     } else if (user.role === 'student') {
-      groups = await Group.find({ students: user._id })
+      groups = await Group.find({ students: user.userId })
         .populate('department')
         .populate('mentor')
         .populate('courses');

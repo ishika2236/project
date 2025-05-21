@@ -64,15 +64,15 @@ export const ThemeProvider = ({ children }) => {
       secondaryText: 'text-[#5E6E82]',
       button: {
         primary: 'bg-gradient-to-r from-[#506EE5]/60 via-[#222C42]/40 to-[#1D2229] text-white ' +
-                 'hover:from-[#506EE5] hover:to-[#1D2229] ' +
-                 'border-2 border-[#1E4FFF]/30 border-rounded-lg ' +
-                 'transition-all duration-300 ease-in-out',
+                'hover:from-[#506EE5] hover:to-[#1D2229] ' +
+                'border-2 border-[#1E4FFF]/30 border-rounded-lg ' +
+                'transition-all duration-300 ease-in-out',
         gradient: 'bg-gradient-to-r from-[#F2683C]/20 to-[#2F955A]/20',
         green: 'bg-gradient-to-r from-[#1A2520]/80 to-[#0A0E13]/90 text-white ' +
-               'hover:from-[#2F955A]/20 hover:to-[#0A0E13]/80 ' +
-               'border-2 border-[#2F955A]/50 rounded-lg ' +
-               'shadow-[inset_0_0_15px_rgba(47,149,90,0.3)] ' +
-               'transition-all duration-300 ease-in-out',
+              'hover:from-[#2F955A]/20 hover:to-[#0A0E13]/80 ' +
+              'border-2 border-[#2F955A]/50 rounded-lg ' +
+              'shadow-[inset_0_0_15px_rgba(47,149,90,0.3)] ' +
+              'transition-all duration-300 ease-in-out',
         orange: 'bg-gradient-to-r from-[#251A1A]/80 to-[#0A0E13]/90 text-white ' +
                 'hover:from-[#F2683C]/20 hover:to-[#0A0E13]/80 ' +
                 'border-2 border-[#F2683C]/50 rounded-lg ' +
@@ -85,72 +85,40 @@ export const ThemeProvider = ({ children }) => {
       }
     },
   
-    // Enhanced premium light theme
+    // Updated light theme (without purple-blue)
     light: {
-      // Sophisticated background with subtle gradients
-      background: 'bg-gradient-to-br from-indigo-50 via-blue-50 to-violet-50',
+      background: 'bg-white',
       text: 'text-slate-800',
-      gradientBackground: 'bg-gradient-to-b from-white to-indigo-50/70',
+      gradientBackground: 'bg-gradient-to-br from-slate-50 to-white',
       
-      // Refined sidebar with glass effect
-      sidebar: 'bg-white/80 backdrop-blur-lg border-r border-indigo-100 shadow-lg shadow-indigo-100/20',
+      // Card with clean styling (no purple)
+      card: 'bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300',
       
-      // Premium card design with subtle effects
-      card: 'bg-white/90 rounded-xl shadow-lg border border-indigo-100 hover:shadow-xl hover:border-indigo-200 backdrop-blur-sm transition-all duration-300',
-      
-      // Eye-catching icons
-      icon: 'text-indigo-600',
-      secondaryText: 'text-slate-600',
-      
-      // Premium button styles
+      icon: 'text-blue-600',
+      secondaryText: 'text-slate-500',
+    
+      // Updated button styles with blue tones instead of purple
       button: {
-        primary: 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white ' +
-                 'hover:from-indigo-700 hover:to-violet-700 hover:shadow-lg hover:shadow-indigo-200/40 ' +
-                 'rounded-lg shadow-md shadow-indigo-200/30 ' +
-                 'transition-all duration-300 ease-in-out',
-                 
-        gradient: 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white ' +
-                  'hover:from-sky-600 hover:to-indigo-700 hover:shadow-lg hover:shadow-indigo-200/40 ' +
-                  'rounded-lg shadow-md shadow-indigo-200/30 ' +
-                  'transition-all duration-300 ease-in-out',
-                  
-        green: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white ' +
-               'hover:from-emerald-600 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-200/40 ' +
-               'rounded-lg shadow-md shadow-emerald-200/30 ' +
-               'transition-all duration-300 ease-in-out',
-               
-        red: 'bg-gradient-to-r from-rose-500 to-pink-600 text-white ' +
-             'hover:from-rose-600 hover:to-pink-700 hover:shadow-lg hover:shadow-rose-200/40 ' +
-             'rounded-lg shadow-md shadow-rose-200/30 ' +
-             'transition-all duration-300 ease-in-out',
-             
-        orange: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white ' +
-                'hover:from-amber-600 hover:to-orange-700 hover:shadow-lg hover:shadow-amber-200/40 ' +
-                'rounded-lg shadow-md shadow-amber-200/30 ' +
-                'transition-all duration-300 ease-in-out',
-                
-        purple: 'bg-gradient-to-r from-violet-500 to-purple-600 text-white ' +
-                'hover:from-violet-600 hover:to-purple-700 hover:shadow-lg hover:shadow-violet-200/40 ' +
-                'rounded-lg shadow-md shadow-violet-200/30 ' +
-                'transition-all duration-300 ease-in-out',
-                
-        subtle: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all rounded-lg border border-indigo-100 shadow-sm hover:shadow-md hover:shadow-indigo-100/30'
+        primary: 'bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow-sm transition-all duration-300',
+        gradient: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-md rounded-lg transition-all duration-300',
+        green: 'bg-emerald-500 text-white hover:bg-emerald-600 rounded-lg shadow-sm transition-all duration-300',
+        orange: 'bg-amber-500 text-white hover:bg-amber-600 rounded-lg shadow-sm transition-all duration-300',
+        subtle: 'bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all duration-300',
       },
       
-      // Eye-catching gradient texts
       gradient: {
-        text: 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 font-medium',
-        accent: 'text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-pink-600 font-medium',
-        success: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 font-medium',
-        premium: 'text-transparent bg-clip-text bg-gradient-to-br from-indigo-700 via-purple-600 to-pink-600 font-medium'
+        text: 'text-blue-600 font-medium',
+        accent: 'text-blue-600 font-medium',
+        success: 'text-emerald-500 font-medium',
+        premium: 'bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent font-medium'
       },
       
-      // Additional premium elements
+      // Additional decorative elements
       decoration: {
-        glassMorphism: 'bg-white/40 backdrop-blur-md border border-white/50 shadow-xl shadow-indigo-200/20',
-        glow: 'shadow-lg shadow-indigo-200/50',
-        highlight: 'ring-2 ring-indigo-200 ring-offset-2',
-        divider: 'h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent'
+        glassMorphism: 'bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm',
+        glow: 'shadow-md shadow-blue-100',
+        highlight: 'ring-2 ring-blue-200 ring-offset-2',
+        divider: 'h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent'
       }
     }
   };

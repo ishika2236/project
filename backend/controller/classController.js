@@ -1,617 +1,493 @@
-const Class = require('../model/class')
+const Class = require('../model/class');
+const Classroom = require('../model/classroom');
 const mongoose = require('mongoose');
-const { isValidObjectId } = mongoose;
-const User = require('../model/user');
-const department = require('../model/department');
+const { startOfDay, endOfDay } = require('date-fns');
 
 /**
- * Class Controller for handling class scheduling and management
+ * Controller for handling class scheduling and material operations
  */
 const classController = {
   /**
-   * Get all classes for a group
+   * Create a new scheduled class
+   * @route POST /api/classes
    */
-  getClassesByGroup: async (req, res) => {
+  scheduleClass: async (req, res) => {
     try {
-      const { groupId } = req.params;
-      
-      if (!isValidObjectId(groupId)) {
-        return res.status(400).json({ message: 'Invalid group ID' });
+      const {
+        title,
+        course,
+        classroom,
+        teacher,
+        groups,
+        department,
+        schedule,
+        topics,
+        notes,
+        specialRequirements,
+        isExtraClass,
+        extraClassDate
+      } = req.body;
+  
+      if (!title || !course || !classroom || !teacher || !department) {
+        return res.status(400).json({ message: 'Missing required fields' });
       }
-      
-      const classes = await Class.find({ group: groupId })
-        .populate('course', 'name code')
-        .populate('teacher', 'firstName lastName email')
-        .sort({ 'schedule.day': 1, 'schedule.startTime': 1 });
-        
-      res.status(200).json(classes);
+  
+      if (isExtraClass) {
+        if (!extraClassDate || !schedule.startTime || !schedule.endTime) {
+          return res.status(400).json({ message: 'Extra class requires date, start time, and end time' });
+        }
+      } else {
+        const dayNameToNumber = {
+          Sunday: 0,
+          Monday: 1,
+          Tuesday: 2,
+          Wednesday: 3,
+          Thursday: 4,
+          Friday: 5,
+          Saturday: 6
+        };
+  
+        if (schedule.daysOfWeek && Array.isArray(schedule.daysOfWeek)) {
+          schedule.daysOfWeek = schedule.daysOfWeek.map(day => {
+            const num = dayNameToNumber[day];
+            if (num === undefined) {
+              throw new Error(`Invalid day: ${day}`);
+            }
+            return num;
+          });
+        }
+  
+        if (!schedule.startDate || !schedule.endDate || !schedule.daysOfWeek || !schedule.startTime || !schedule.endTime) {
+          return res.status(400).json({ message: 'Regular class requires complete schedule information' });
+        }
+      }
+  
+      const classroomObj = await Classroom.findById(classroom);
+      if (!classroomObj) {
+        return res.status(404).json({ message: 'Classroom not found' });
+      }
+  
+      const newClass = new Class({
+        title,
+        course,
+        classroom,
+        teacher,
+        groups: groups || [],
+        department,
+        location: {
+          building: classroomObj.building,
+          room: classroomObj.roomNumber
+        },
+        schedule,
+        topics: topics || [],
+        notes: notes || '',
+        specialRequirements: specialRequirements || '',
+        isExtraClass: isExtraClass || false,
+        extraClassDate: extraClassDate ? new Date(extraClassDate) : null
+      });
+  
+      await newClass.save();
+  
+      // ✅ Push new class into Classroom.classes array
+      classroomObj.classes.push({
+        class: newClass._id,
+        status: 'scheduled',
+        notes: notes || ''
+      });
+  
+      await classroomObj.save();
+  
+      return res.status(201).json({
+        message: `Class ${isExtraClass ? 'extra session' : 'schedule'} created and linked to classroom successfully`,
+        class: newClass
+      });
+  
     } catch (error) {
-      res.status(500).json({ message: 'Error fetching classes', error: error.message });
+      if (error.message && error.message.includes('schedule conflict')) {
+        return res.status(409).json({ message: error.message });
+      }
+      console.error('Error scheduling class:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
   },
   
+
   /**
-   * Get all classes for a course
+   * Get all classes
+   * @route GET /api/classes
    */
-  getClassesByCourse: async (req, res) => {
+  getAllClasses: async (req, res) => {
     try {
-      const { courseId } = req.params;
-      
-      if (!isValidObjectId(courseId)) {
-        return res.status(400).json({ message: 'Invalid course ID' });
-      }
-      
-      const classes = await Class.find({ course: courseId })
-        .populate('group', 'name')
-        .populate('teacher', 'firstName lastName email')
-        .sort({ 'schedule.day': 1, 'schedule.startTime': 1 });
-        
-      res.status(200).json(classes);
+      const classes = await Class.find()
+        .populate('course', 'title code')
+        .populate('classroom', 'name roomNumber building')
+        .populate('teacher', 'firstName lastName')
+        .populate('department', 'name')
+        .sort({ 'schedule.startDate': 1, 'extraClassDate': 1 });
+
+      return res.status(200).json(classes);
     } catch (error) {
-      res.status(500).json({ message: 'Error fetching classes', error: error.message });
+      console.error('Error retrieving classes:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
   },
-  
+
   /**
-   * Get all classes for a teacher
-   */
-  getClassesByTeacher: async (req, res) => {
-    try {
-      const { teacherId } = req.params;
-      
-      if (!isValidObjectId(teacherId)) {
-        return res.status(400).json({ message: 'Invalid teacher ID' });
-      }
-      
-      const classes = await Class.find({ teacher: teacherId })
-        .populate('course', 'name code')
-        .populate('group', 'name')
-        .sort({ 'schedule.day': 1, 'schedule.startTime': 1 });
-        
-      res.status(200).json(classes);
-    } catch (error) {
-      res.status(500).json({ message: 'Error fetching classes', error: error.message });
-    }
-  },
-  
-  /**
-   * Get a single class by ID
+   * Get a specific class by ID
+   * @route GET /api/classes/:id
    */
   getClassById: async (req, res) => {
     try {
-      const { classId } = req.params;
+      const { id } = req.params;
       
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
+      const classObj = await Class.findById(id)
+        .populate('course', 'title code')
+        .populate('classroom', 'name roomNumber building')
+        .populate('teacher', 'firstName lastName email')
+        .populate('groups', 'name')
+        .populate('department', 'name');
       
-      const classData = await Class.findById(classId)
-        .populate('course', 'name code description')
-        .populate('group', 'name')
-        .populate('teacher', 'firstName lastName email');
-        
-      if (!classData) {
+      if (!classObj) {
         return res.status(404).json({ message: 'Class not found' });
       }
       
-      res.status(200).json(classData);
+      return res.status(200).json(classObj);
     } catch (error) {
-      res.status(500).json({ message: 'Error fetching class', error: error.message });
+      console.error('Error retrieving class details:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
   },
-  
+
   /**
-   * Create a new class
+   * Get classes for a date range
+   * @route GET /api/classes/daterange
    */
-  createClass: async (req, res) => {
+  getClassesForDateRange: async (req, res) => {
     try {
-      const { 
-        name, 
-        course, 
-        group, 
-        teacher, 
-        description, 
-        location, 
-        schedule,
-        attendanceSettings 
-      } = req.body;
+      const { startDate, endDate } = req.query;
       
-      // Validate required fields
-      if (!name || !course || !group || !teacher) {
-        return res.status(400).json({ 
-          message: 'Missing required fields. Name, course, group, and teacher are required.' 
-        });
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'Start date and end date are required' });
       }
       
-      // Validate IDs
-      if (!isValidObjectId(course) || !isValidObjectId(group) || !isValidObjectId(teacher)) {
-        return res.status(400).json({ message: 'Invalid ID format for course, group or teacher' });
-      }
+      const start = new Date(startDate);
+      const end = new Date(endDate);
       
-      // Create new class
-      const newClass = new Class({
-        name,
-        course,
-        group,
-        teacher,
-        description,
-        location,
-        schedule: schedule || [],
-        attendanceSettings: attendanceSettings || {}
-      });
-      
-      const savedClass = await newClass.save();
-      
-      res.status(201).json(savedClass);
-    } catch (error) {
-      res.status(500).json({ message: 'Error creating class', error: error.message });
-    }
-  },
-  
-  /**
-   * Update an existing class
-   */
-  updateClass: async (req, res) => {
-    try {
-      const { classId } = req.params;
-      const updateData = req.body;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      // Validate IDs if present in update data
-      if (updateData.course && !isValidObjectId(updateData.course)) {
-        return res.status(400).json({ message: 'Invalid course ID' });
-      }
-      
-      if (updateData.group && !isValidObjectId(updateData.group)) {
-        return res.status(400).json({ message: 'Invalid group ID' });
-      }
-      
-      if (updateData.teacher && !isValidObjectId(updateData.teacher)) {
-        return res.status(400).json({ message: 'Invalid teacher ID' });
-      }
-      
-      const updatedClass = await Class.findByIdAndUpdate(
-        classId,
-        { $set: updateData },
-        { new: true, runValidators: true }
-      );
-      
-      if (!updatedClass) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      res.status(200).json(updatedClass);
-    } catch (error) {
-      res.status(500).json({ message: 'Error updating class', error: error.message });
-    }
-  },
-  
-  /**
-   * Delete a class
-   */
-  deleteClass: async (req, res) => {
-    try {
-      const { classId } = req.params;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      const deletedClass = await Class.findByIdAndDelete(classId);
-      
-      if (!deletedClass) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      res.status(200).json({ message: 'Class deleted successfully', deletedClass });
-    } catch (error) {
-      res.status(500).json({ message: 'Error deleting class', error: error.message });
-    }
-  },
-  
-  /**
-   * Add a new periodic schedule to a class
-   */
-  addSchedule: async (req, res) => {
-    try {
-      const { classId } = req.params;
-      const { day, startTime, endTime } = req.body;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      if (!day || !startTime || !endTime) {
-        return res.status(400).json({ 
-          message: 'Missing required fields. Day, startTime, and endTime are required.' 
-        });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      classData.schedule.push({ day, startTime, endTime });
-      await classData.save();
-      
-      res.status(200).json(classData);
-    } catch (error) {
-      res.status(500).json({ message: 'Error adding schedule', error: error.message });
-    }
-  },
-  
-  /**
-   * Update a schedule entry
-   */
-  updateSchedule: async (req, res) => {
-    try {
-      const { classId, scheduleId } = req.params;
-      const { day, startTime, endTime } = req.body;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      const scheduleEntry = classData.schedule.id(scheduleId);
-      
-      if (!scheduleEntry) {
-        return res.status(404).json({ message: 'Schedule entry not found' });
-      }
-      
-      if (day) scheduleEntry.day = day;
-      if (startTime) scheduleEntry.startTime = startTime;
-      if (endTime) scheduleEntry.endTime = endTime;
-      
-      await classData.save();
-      
-      res.status(200).json(classData);
-    } catch (error) {
-      res.status(500).json({ message: 'Error updating schedule', error: error.message });
-    }
-  },
-  
-  /**
-   * Delete a schedule entry
-   */
-  deleteSchedule: async (req, res) => {
-    try {
-      const { classId, scheduleId } = req.params;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      classData.schedule.id(scheduleId).remove();
-      await classData.save();
-      
-      res.status(200).json({ message: 'Schedule entry deleted successfully', classData });
-    } catch (error) {
-      res.status(500).json({ message: 'Error deleting schedule', error: error.message });
-    }
-  },
-  
-  /**
-   * Create a new class session (for one-time or extra classes)
-   */
-  createSession: async (req, res) => {
-    try {
-      const { classId } = req.params;
-      const { date, startTime, endTime, topic, description, attendanceEnabled, attendanceWindow } = req.body;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      if (!date || !startTime || !endTime) {
-        return res.status(400).json({ 
-          message: 'Missing required fields. Date, startTime, and endTime are required.' 
-        });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      // Create new session
-      const newSession = {
-        date: new Date(date),
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        topic: topic || '',
-        description: description || '',
-        status: 'scheduled',
-        attendanceEnabled: attendanceEnabled !== undefined ? attendanceEnabled : false,
-        attendanceWindow: attendanceWindow || {
-          startTime: new Date(startTime),
-          endTime: new Date(new Date(startTime).getTime() + (classData.attendanceSettings.defaultWindowMinutes * 60000))
-        }
+      const query = {
+        $or: [
+          // Regular classes that overlap with the date range
+          {
+            isExtraClass: false,
+            'schedule.startDate': { $lte: end },
+            'schedule.endDate': { $gte: start }
+          },
+          // Extra classes within the date range
+          {
+            isExtraClass: true,
+            extraClassDate: { $gte: start, $lte: end }
+          }
+        ]
       };
       
-      classData.sessions.push(newSession);
-      await classData.save();
-      
-      res.status(201).json({ 
-        message: 'Session created successfully', 
-        session: classData.sessions[classData.sessions.length - 1] 
-      });
+      const classes = await Class.find(query)
+        .populate('course', 'courseName courseCode')
+        .populate('classroom', 'name roomNumber building')
+        .populate('teacher', 'firstName lastName')
+        .sort({ 'schedule.startDate': 1, 'extraClassDate': 1 });
+
+      return res.status(200).json(classes);
     } catch (error) {
-      res.status(500).json({ message: 'Error creating session', error: error.message });
+      console.error('Error retrieving classes for date range:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
   },
-  
+
   /**
-   * Update a class session
+   * Update class schedule
+   * @route PUT /api/classes/:id/schedule
    */
-  updateSession: async (req, res) => {
+  rescheduleClass: async (req, res) => {
     try {
-      const { classId, sessionId } = req.params;
-      const updateData = req.body;
+      const { id } = req.params;
+      const { schedule, extraClassDate } = req.body;
       
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
+      const classObj = await Class.findById(id);
+      if (!classObj) {
         return res.status(404).json({ message: 'Class not found' });
       }
       
-      const session = classData.sessions.id(sessionId);
+      const dayNameToNumber = {
+        Sunday: 0,
+        Monday: 1,
+        Tuesday: 2,
+        Wednesday: 3,
+        Thursday: 4,
+        Friday: 5,
+        Saturday: 6
+      };
       
-      if (!session) {
-        return res.status(404).json({ message: 'Session not found' });
+      // Process schedule if provided
+      if (schedule) {
+        if (schedule.daysOfWeek && Array.isArray(schedule.daysOfWeek)) {
+          const convertedDays = schedule.daysOfWeek.map(day => {
+            if (typeof day === 'string') {
+              const num = dayNameToNumber[day];
+              if (num === undefined) {
+                throw new Error(`Invalid day name: ${day}`);
+              }
+              return num;
+            } else if (typeof day === 'number') {
+              if (day < 0 || day > 6) {
+                throw new Error(`Invalid day number: ${day}`);
+              }
+              return day;
+            } else {
+              throw new Error(`Unsupported day format: ${day}`);
+            }
+          });
+          
+          // Update the class object with the new schedule
+          classObj.schedule = classObj.schedule || {};
+          classObj.schedule.daysOfWeek = convertedDays;
+          
+          // Update other schedule properties if provided
+          if (schedule.startTime) classObj.schedule.startTime = schedule.startTime;
+          if (schedule.endTime) classObj.schedule.endTime = schedule.endTime;
+          // Add any other schedule properties you need to update
+        }
       }
       
-      // Update session fields
-      Object.keys(updateData).forEach(key => {
-        // Handle date fields
-        if (['date', 'startTime', 'endTime'].includes(key) && updateData[key]) {
-          session[key] = new Date(updateData[key]);
-        }
-        // Handle nested attendanceWindow object
-        else if (key === 'attendanceWindow' && updateData[key]) {
-          if (updateData[key].startTime) {
-            session.attendanceWindow.startTime = new Date(updateData[key].startTime);
-          }
-          if (updateData[key].endTime) {
-            session.attendanceWindow.endTime = new Date(updateData[key].endTime);
-          }
-        }
-        // Handle other fields
-        else if (updateData[key] !== undefined) {
-          session[key] = updateData[key];
-        }
+      // Handle extraClassDate if provided
+      if (extraClassDate) {
+        // Add logic to handle extra class dates
+        classObj.extraClassDates = classObj.extraClassDates || [];
+        classObj.extraClassDates.push(extraClassDate);
+      }
+      
+      await classObj.save();
+      
+      return res.status(200).json({
+        message: 'Class rescheduled successfully',
+        class: classObj
       });
-      
-      await classData.save();
-      
-      res.status(200).json({ message: 'Session updated successfully', session });
     } catch (error) {
-      res.status(500).json({ message: 'Error updating session', error: error.message });
+      if (error.message && error.message.includes('schedule conflict')) {
+        return res.status(409).json({ message: error.message });
+      }
+      console.error('Error rescheduling class:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
   },
-  
   /**
-   * Delete a class session
-   */
-  deleteSession: async (req, res) => {
-    try {
-      const { classId, sessionId } = req.params;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      const session = classData.sessions.id(sessionId);
-      
-      if (!session) {
-        return res.status(404).json({ message: 'Session not found' });
-      }
-      
-      session.remove();
-      await classData.save();
-      
-      res.status(200).json({ message: 'Session deleted successfully', classData });
-    } catch (error) {
-      res.status(500).json({ message: 'Error deleting session', error: error.message });
-    }
-  },
-  
-  /**
-   * Update class location with geolocation data
+   * Update class location
+   * @route PATCH /api/classes/:id/location
    */
   updateClassLocation: async (req, res) => {
     try {
-      const { classId } = req.params;
-      const { building, room, latitude, longitude, radius } = req.body;
+      const { id } = req.params;
+      const {
+        building,
+        room,
+        latitude,
+        longitude,
+        address,
+        floor,
+        additionalInfo
+      } = req.body;
       
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
+      const classObj = await Class.findById(id);
+      if (!classObj) {
         return res.status(404).json({ message: 'Class not found' });
       }
       
-      // Update location
-      classData.location = {
-        building: building || classData.location?.building,
-        room: room || classData.location?.room,
-        gpsCoordinates: {
-          latitude: latitude !== undefined ? latitude : classData.location?.gpsCoordinates?.latitude,
-          longitude: longitude !== undefined ? longitude : classData.location?.gpsCoordinates?.longitude,
-          radius: radius !== undefined ? radius : (classData.location?.gpsCoordinates?.radius || 50)
-        }
+      // Update location fields
+      classObj.location = {
+        building: building !== undefined ? building : classObj.location?.building,
+        room: room !== undefined ? room : classObj.location?.room,
+        latitude: latitude !== undefined ? latitude : classObj.location?.latitude,
+        longitude: longitude !== undefined ? longitude : classObj.location?.longitude,
+        address: address !== undefined ? address : classObj.location?.address,
+        floor: floor !== undefined ? floor : classObj.location?.floor,
+        additionalInfo: additionalInfo !== undefined ? additionalInfo : classObj.location?.additionalInfo
       };
       
-      await classData.save();
+      // Save updated class
+      await classObj.save();
       
-      res.status(200).json({ message: 'Class location updated successfully', classData });
+      return res.status(200).json({
+        message: 'Class location updated successfully',
+        location: classObj.location
+      });
     } catch (error) {
-      res.status(500).json({ message: 'Error updating class location', error: error.message });
+      console.error('Error updating class location:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
     }
-  },
-  
-  /**
-   * Mark attendance for a student in a session
-   */
-  markAttendance: async (req, res) => {
-    try {
-      const { classId, sessionId } = req.params;
-      const { studentId, status, latitude, longitude } = req.body;
-      
-      if (!isValidObjectId(classId) || !isValidObjectId(studentId)) {
-        return res.status(400).json({ message: 'Invalid ID format' });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      // Create verification data object
-      const verificationData = {};
-      
-      // Add geolocation data if available
-      if (latitude !== undefined && longitude !== undefined) {
-        verificationData.geolocation = {
-          coordinates: {
-            latitude,
-            longitude
-          },
-          verifiedByGeo: isStudentInRange(
-            latitude, 
-            longitude, 
-            classData.location?.gpsCoordinates?.latitude,
-            classData.location?.gpsCoordinates?.longitude,
-            classData.location?.gpsCoordinates?.radius
-          )
-        };
-      }
-      
-      // Mark attendance using the method in the Class model
-      const attendance = await classData.markAttendance(
-        sessionId,
-        studentId,
-        status,
-        verificationData
-      );
-      
-      res.status(200).json({ message: 'Attendance marked successfully', attendance });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  },
-  
-  /**
-   * Get attendance for a session
-   */
-  getSessionAttendance: async (req, res) => {
-    try {
-      const { classId, sessionId } = req.params;
-      
-      if (!isValidObjectId(classId)) {
-        return res.status(400).json({ message: 'Invalid class ID' });
-      }
-      
-      const classData = await Class.findById(classId);
-      
-      if (!classData) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
-      
-      const attendance = await classData.getSessionAttendance(sessionId);
-      
-      res.status(200).json(attendance);
-    } catch (error) {
-      res.status(500).json({ message: 'Error fetching attendance', error: error.message });
-    }
-  },
-  fetchTeacherClassrooms: async(req, res)=>{
-        
-        try {
-           
-          const teacherId = req.user.userId;
-            console.log(teacherId)
-          const teacher = await User.findById(teacherId)
-            .populate({
-              path: 'teachingAssignments.course',
-              populate: { path: 'department' }  
-            })
-            .populate('teachingAssignments.group')
-            .populate('department')
-            .populate('teachingAssignments.course');
-      
-          if (!teacher) {
-            return res.status(404).json({ error: 'Teacher not found' });
-          }
-         
-          res.json({
-            department: teacher.department,
-            teachingAssignments: teacher.teachingAssignments
-          });
-        } catch (err) {
-          console.error(err);
-          res.status(500).json({ error: err.message });
-        }
-      
   },
 
+  /**
+   * Update class notes
+   * @route PATCH /api/classes/:id/notes
+   */
+  updateClassNotes: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { notes } = req.body;
+      
+      if (notes === undefined) {
+        return res.status(400).json({ message: 'Notes field is required' });
+      }
+
+      const classObj = await Class.findById(id);
+      if (!classObj) {
+        return res.status(404).json({ message: 'Class not found' });
+      }
+      
+      classObj.notes = notes;
+      await classObj.save();
+      
+      return res.status(200).json({
+        message: 'Class notes updated successfully',
+        notes: classObj.notes
+      });
+    } catch (error) {
+      console.error('Error updating class notes:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  },
+
+  /**
+   * Add/update class topics
+   * @route PATCH /api/classes/:id/topics
+   */
+  updateClassTopics: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { topics } = req.body;
+      
+      if (!topics || !Array.isArray(topics)) {
+        return res.status(400).json({ message: 'Topics should be provided as an array' });
+      }
+
+      const classObj = await Class.findById(id);
+      if (!classObj) {
+        return res.status(404).json({ message: 'Class not found' });
+      }
+      
+      classObj.topics = topics;
+      await classObj.save();
+      
+      return res.status(200).json({
+        message: 'Class topics updated successfully',
+        topics: classObj.topics
+      });
+    } catch (error) {
+      console.error('Error updating class topics:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  },
+
+  /**
+   * Update class special requirements
+   * @route PATCH /api/classes/:id/requirements
+   */
+  updateSpecialRequirements: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { specialRequirements } = req.body;
+      
+      if (specialRequirements === undefined) {
+        return res.status(400).json({ message: 'Special requirements field is required' });
+      }
+
+      const classObj = await Class.findById(id);
+      if (!classObj) {
+        return res.status(404).json({ message: 'Class not found' });
+      }
+      
+      classObj.specialRequirements = specialRequirements;
+      await classObj.save();
+      
+      return res.status(200).json({
+        message: 'Class special requirements updated successfully',
+        specialRequirements: classObj.specialRequirements
+      });
+    } catch (error) {
+      console.error('Error updating class special requirements:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  },
+
+  /**
+   * Delete a class
+   * @route DELETE /api/classes/:id
+   */
+  deleteClass: async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const result = await Class.findByIdAndDelete(id);
+      
+      if (!result) {
+        return res.status(404).json({ message: 'Class not found' });
+      }
+      
+      return res.status(200).json({ message: 'Class deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+  },
+  getClassesByClassroom :async (req, res) => {
+    const { classroomId } = req.params;
+  
+    try {
+      const classes = await Class.find({ classroom: classroomId })
+        .populate('course teacher classroom groups department');
+  
+      res.status(200).json(classes);
+    } catch (error) {
+      console.error('Error fetching classes by classroom:', error);
+      res.status(500).json({ message: 'Server Error' });
+    }
+  },
+  
+ 
+  getClassesByClassroomForDateRange: async (req, res) => {
+    const {classroomId} = req.params;
+    const { startDate, endDate } = req.query;
+    console.log(classroomId, startDate, endDate);
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: 'Both startDate and endDate are required' });
+    }
+  
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+  
+    try {
+      const classes = await Class.find({
+        classroom: classroomId,
+        $or: [
+          // Recurring classes that intersect the range
+          {
+            isExtraClass: false,
+            'schedule.startDate': { $lte: end },
+            'schedule.endDate': { $gte: start }
+          },
+          // Extra classes within the date range
+          {
+            isExtraClass: true,
+            extraClassDate: { $gte: start, $lte: end }
+          }
+        ]
+      }).populate('course teacher classroom groups department').populate('classroom', 'department assignedTeacher group assignedStudents course');
+  
+      res.status(200).json(classes);
+    } catch (error) {
+      console.error('Error fetching classes by date range:', error);
+      res.status(500).json({ message: 'Server Error' });
+    }
+  },
   
 };
-
-
-/**
- * Helper function to check if a student is within the specified radius of the class location
- */
-function isStudentInRange(studentLat, studentLng, classLat, classLng, radiusMeters = 50) {
-  if (!studentLat || !studentLng || !classLat || !classLng) {
-    return false;
-  }
-  
-  // Calculate distance between two points using the Haversine formula
-  const R = 6371e3; // Earth's radius in meters
-  const φ1 = studentLat * Math.PI/180;
-  const φ2 = classLat * Math.PI/180;
-  const Δφ = (classLat - studentLat) * Math.PI/180;
-  const Δλ = (classLng - studentLng) * Math.PI/180;
-
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c;
-
-  return distance <= radiusMeters;
-}
 
 module.exports = classController;

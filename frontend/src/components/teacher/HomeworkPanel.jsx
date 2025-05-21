@@ -1,6 +1,6 @@
 import React from "react";
 import { PlusCircle, Users,Calendar  } from "lucide-react";
-
+import { useTheme } from "../../context/ThemeProvider";
 export default function HomeworkPanel() {
     const { themeConfig, theme } = useTheme();
     const currentTheme = themeConfig[theme];

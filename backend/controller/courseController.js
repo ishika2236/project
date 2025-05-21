@@ -122,7 +122,7 @@ const getCoursesForGroup = async (req, res) => {
 
 const getCoursesForStudent = async (req, res) => {
   try {
-    const studentId = req.user.id;
+    const studentId = req.user.userId;
     const student = await User.findById(studentId);
     if (!student) return res.status(404).json({ error: 'Student not found' });
     

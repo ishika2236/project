@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const ResourceSchema = new mongoose.Schema({
@@ -7,10 +6,7 @@ const ResourceSchema = new mongoose.Schema({
     required: true,
   },
   description: String,
-  link: {
-    type: String,
-    required: true,
-  },
+  link: String, // Optional: useful if it's a YouTube or external link
   type: {
     type: String,
     enum: ["pdf", "video", "article", "link", "other"],
@@ -25,6 +21,13 @@ const ResourceSchema = new mongoose.Schema({
     ref: "Group",
     required: true,
   },
+  files: [
+    {
+      url: String,
+      filename: String,
+      mimetype: String,
+    }
+  ],
 }, {
   timestamps: true,
 });

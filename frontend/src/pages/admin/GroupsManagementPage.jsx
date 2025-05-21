@@ -4,6 +4,7 @@ import GroupsList from '../../components/admin/groupManagement/GroupsList';
 import GroupDetails from '../../components/admin/groupManagement/GroupDetails';
 import GroupForm from '../../components/admin/groupManagement/GroupForm';
 import GroupFilters from '../../components/admin/groupManagement/GroupFilters';
+import ToastContainer from '../../components/ToastContainer';
 import { Plus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDepartments } from './../../app/features/departments/departmentThunks'
@@ -14,7 +15,8 @@ import {
   fetchAllGroups,
   assignStudentToGroup,
   deleteGroup,
-  updateGroup
+  updateGroup,
+  removeStudentFromGroup
 } from '../../app/features/groups/groupThunks';
 
 const GroupsManagementPage = () => {
@@ -46,6 +48,7 @@ const GroupsManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [addingStudents, setAddingStudents] = useState(false);
+  const [removingStudent, setRemovingStudent] = useState(false);
   const dispatch = useDispatch();
 
   // Fetch initial data only once when the component mounts
@@ -113,7 +116,7 @@ const GroupsManagementPage = () => {
 
   const handleDeleteGroup = async (groupId) => {
     try {
-      console.log(groupId)
+      // console.log(groupId)
       const result = await dispatch(deleteGroup(groupId));
       if (result.meta.requestStatus === 'fulfilled') {
         // Filter the group out of the flattened list
@@ -172,13 +175,79 @@ const GroupsManagementPage = () => {
       }));
       
       if (result.meta.requestStatus === 'fulfilled') {
+        // Show success toast notification
+        if (window.toastManager) {
+          const count = studentIds.length;
+          const group = flattenedGroups.find(g => g._id === groupId);
+          const groupName = group ? group.name : 'the group';
+          
+          window.toastManager.success(
+            `${count} ${count === 1 ? 'student' : 'students'} added to ${groupName}`
+          );
+        }
+        
         // Refresh groups to get the latest data
         dispatch(fetchAllGroups());
       }
     } catch (error) {
       console.error('Error adding students to group:', error);
+      // Show error toast notification
+      if (window.toastManager) {
+        window.toastManager.error('Failed to add students to group');
+      }
     } finally {
       setAddingStudents(false);
+    }
+  };
+  
+  const handleRemoveStudentFromGroup = async (groupId, studentId) => {
+    if (!groupId || !studentId) {
+      console.error('Invalid group ID or student ID');
+      return;
+    }
+
+    setRemovingStudent(true);
+    try {
+      // Dispatch the action to remove student from the group
+      const result = await dispatch(removeStudentFromGroup({ 
+        groupId, 
+        studentId
+      }));
+      
+      if (result.meta.requestStatus === 'fulfilled') {
+        // Show success toast notification
+        if (window.toastManager) {
+          const student = students.find(s => s._id === studentId);
+          const group = flattenedGroups.find(g => g._id === groupId);
+          const studentName = student ? `${student.firstName} ${student.lastName}` : 'Student';
+          const groupName = group ? group.name : 'the group';
+          
+          window.toastManager.success(`${studentName} was removed from ${groupName}`);
+        }
+        
+        // Refresh groups to get the latest data
+        dispatch(fetchAllGroups());
+        
+        // Update the selected group if it's currently selected
+        if (selectedGroup && selectedGroup._id === groupId) {
+          const updatedGroup = flattenedGroups.find(g => g._id === groupId);
+          if (updatedGroup) {
+            // Update the selected group with the student removed
+            setSelectedGroup({
+              ...updatedGroup,
+              students: updatedGroup.students.filter(s => s._id !== studentId)
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error removing student from group:', error);
+      // Show error toast notification
+      if (window.toastManager) {
+        window.toastManager.error('Failed to remove student from group');
+      }
+    } finally {
+      setRemovingStudent(false);
     }
   };
 
@@ -219,6 +288,9 @@ const GroupsManagementPage = () => {
 
   return (
     <div className={`${colors.background} min-h-screen p-6`}>
+      {/* Toast Container for notifications */}
+      <ToastContainer />
+      
       <div className={`${colors.gradientBackground} rounded-lg shadow-lg p-6`}>
         <h1 className={`text-2xl font-bold mb-6 ${colors.text}`}>
           Groups Management
@@ -272,8 +344,10 @@ const GroupsManagementPage = () => {
                 group={selectedGroup}
                 onEdit={() => handleEditGroup(selectedGroup)}
                 onAddStudents={handleAddStudentsToGroup}
+                onRemoveStudent={(studentId) => handleRemoveStudentFromGroup(selectedGroup._id, studentId)}
                 allStudents={students}
                 isAddingStudents={addingStudents}
+                isRemovingStudent={removingStudent}
               />
             ) : (
               <div className={`${colors.card} rounded-lg p-8 flex flex-col items-center justify-center h-full`}>

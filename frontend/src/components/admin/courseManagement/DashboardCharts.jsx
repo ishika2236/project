@@ -71,7 +71,7 @@ const EnrollmentTrendChart = ({ colors }) => {
 const DashboardCharts = ({ courses, colors }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <GradeDistributionChart course={courses[0]} colors={colors} />
+      {/* <GradeDistributionChart course={courses[0]} colors={colors} /> */}
       <DepartmentDistributionChart courses={courses} colors={colors} />
       <EnrollmentTrendChart colors={colors} />
     </div>

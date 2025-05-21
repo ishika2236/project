@@ -18,7 +18,7 @@ import StudentClassroomPortal from "./pages/student/StudentClassroomPortal";
 
 // Teacher Components
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import StudentsPage from "./pages/teacher/StudentsPage";
+import TeacherAttendanceDashboard from "./pages/teacher/TeacherAttendanceDashboard";
 
 // Admin Components
 import DashboardOverview from './components/admin/DashboardOverview';
@@ -35,6 +35,7 @@ import DepartmentManagementPage from "./pages/admin/DepartmentManagementPage";
 import TeacherLayout from './pages/teacher/TeacherLayout'
 import ClassroomsPage from "./pages/teacher/ClassroomsPage";
 import StudentCoursesPage from "./pages/student/StudentCourses";
+import SmartAttendLanding from "./pages/SmartAttendLanding";
 // import ClassroomSystem from "./pages/student/StudentClassroomPortal";
 
 
@@ -43,7 +44,7 @@ function App() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* <Route path="/" element={<Navigate to="/" replace />} /> */}
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       
@@ -61,10 +62,10 @@ function App() {
         </ProtectedRoute>
       }>
         <Route index element={<Navigate to="/student" replace />} />
-        <Route path="dashboard" element={<StudentDashboardOverview  />} />
+        {/* <Route path="dashboard" element={<StudentDashboardOverview  />} /> */}
         {/* <Route path="courses" element={<StudentCourses />} /> */}
         <Route path="classrooms" element= {<StudentClassroomPortal/>}></Route>
-        <Route path="courses" element={<StudentCoursesPage />} />
+        <Route path="dashboard" element={<StudentCoursesPage />} />
         <Route path="enroll" element={<StudentEnroll />} />
         <Route path="attendance" element={<StudentClassroomPortal/>} />
         
@@ -84,7 +85,7 @@ function App() {
         <Route path="dashboard" element={<TeacherDashboard />} />
 
         {/* <Route path="courses" element={<CourseComponents />} /> */}
-        <Route path="groups" element={<StudentsPage />} />
+        <Route path="groups" element={<TeacherAttendanceDashboard />} />
         <Route path="classroom" element={<ClassroomsPage/>} />
       </Route>
         {/* <Route path="attendance" element={<AttendanceManagement />} />
@@ -108,9 +109,10 @@ function App() {
         <Route path="adminSettings" element={<AdminSettings/>}></Route>
         <Route  path="manageDepartments" element={<DepartmentManagementPage/>}></Route>
       </Route>
+      <Route path="/" element={<SmartAttendLanding/>}></Route>
       
       {/* Catch all route */}
-      {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

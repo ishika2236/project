@@ -6,6 +6,7 @@ const upload = require('../utils/multerConfig');
 const Department = require('../model/department');
 const Groups = require('../model/groups');
 const mongoose = require('mongoose');
+const Classroom = require('./../model/classroom')
 // Login controller remains unchanged
 const login = async (req, res) => {
     try {
@@ -40,7 +41,6 @@ const login = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
-
 const signup = async (req, res) => {
     try {
         upload.single('profileImage')(req, res, async (err) => {
@@ -142,7 +142,28 @@ const signup = async (req, res) => {
             // Update the user with the reference to the embedding
             user.faceEmbedding = embeddingDoc._id;
             await user.save();
-            // console.log(user, embeddingDoc);
+            
+            // If the user is a student and has been assigned to a group,
+            // add them to all classrooms associated with that group
+            if (role && role.toLowerCase() === 'student' && groupExists) {
+                // Find all classrooms that have the same group as this user
+                const classrooms = await Classroom.find({ group: groupExists._id });
+                
+                // Add this student to assignedStudents in each classroom
+                for (const classroom of classrooms) {
+                    // Only add if the student isn't already in the list
+                    if (!classroom.assignedStudents.includes(user._id)) {
+                        classroom.assignedStudents.push(user._id);
+                        await classroom.save();
+                    }
+                }
+                
+                // Also update the Group schema to include this student
+                if (!groupExists.students.includes(user._id)) {
+                    groupExists.students.push(user._id);
+                    await groupExists.save();
+                }
+            }
             
             // Generate JWT token
             const token = jwt.sign(
@@ -150,7 +171,7 @@ const signup = async (req, res) => {
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
-
+            
             res.status(201).json({
                 message: 'User created successfully',
                 token,
@@ -163,6 +184,129 @@ const signup = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+// const signup = async (req, res) => {
+//     try {
+//         upload.single('profileImage')(req, res, async (err) => {
+//             if (err) {
+//                 return res.status(400).json({ message: `Image upload failed ${err}` });
+//             }
+
+//             const {
+//                 firstName,
+//                 lastName,
+//                 email,
+//                 password,
+//                 role,
+//                 mobile,
+//                 permanentAddress,
+//                 currentAddress,
+//                 rollNumber,
+//                 admissionYear,
+//                 group,
+//                 department, // Added department ID
+//                 employeeId,
+//                 dateOfBirth,
+//                 gender,
+//                 faceEmbedding
+//             } = req.body;
+//             // console.log(req.body);
+            
+//             // Parse face embedding data
+//             const parsedEmbedding = JSON.parse(faceEmbedding);
+            
+//             if (!password) {
+//                 return res.status(400).json({ message: 'Password is required' });
+//             }
+            
+//             // Check if user already exists
+//             const existingUser = await User.findOne({ email });
+//             if (existingUser) {
+//                 return res.status(400).json({ message: 'User already exists' });
+//             }
+
+//             // Validate department ID if provided
+//             let departmentExists = null;
+//             let groupExists = null;
+//             if (department) {
+//                  departmentExists = await Department.findById(department);
+//                 if (!departmentExists) {
+//                     return res.status(400).json({ message: 'Department not found' });
+//                 }
+//             }
+
+//             // Validate group ID if provided
+//             if (group) {
+//                 if (mongoose.Types.ObjectId.isValid(group)) {
+//                     groupExists = await Groups.findById(group);
+//                     if (!groupExists) {
+//                         return res.status(400).json({ message: 'Group not found' });
+//                     }
+                
+//                 }
+//             }
+
+//             // Hash password
+//             const salt = await bcrypt.genSalt(10);
+//             const hashedPassword = await bcrypt.hash(password, salt);
+
+//             // Create new user without embedding reference first
+//             const user = new User({
+//                 firstName,
+//                 lastName,
+//                 email,
+//                 password: hashedPassword,
+//                 role: role ? role.toLowerCase() : "", 
+//                 mobile,
+//                 permanentAddress, 
+//                 currentAddress,   
+//                 rollNumber,
+//                 admissionYear,
+//                 department: departmentExists,
+//                 group: groupExists,
+//                 employeeId,
+//                 dateOfBirth,
+//                 gender: gender ? gender.toLowerCase() : "",  
+//                 profileImage: req.file ? req.file.path : null,
+//             });
+
+//             // Save the user to get an _id
+//             await user.save();
+            
+//             // Now create the embedding document with reference to the user
+//             const embeddingDoc = new Embedding({
+//                 user: user._id,
+//                 embedding: parsedEmbedding,
+//                 isActive: true
+//             });
+            
+//             // Save the embedding document
+//             await embeddingDoc.save();
+            
+//             // Update the user with the reference to the embedding
+//             user.faceEmbedding = embeddingDoc._id;
+//             await user.save();
+//             // console.log(user, embeddingDoc);
+            
+//             // Generate JWT token
+//             const token = jwt.sign(
+//                 { userId: user._id, role: user.role },
+//                 process.env.JWT_SECRET,
+//                 { expiresIn: '24h' }
+//             );
+
+
+//             res.status(201).json({
+//                 message: 'User created successfully',
+//                 token,
+//                 user
+//             });
+//         });
+
+//     } catch (error) {
+//         console.error('Signup error:', error);
+//         res.status(500).json({ message: 'Server error' });
+//     }
+// };
 const me = async (req, res) => {
     try {
         const authHeader = req.headers.authorization;

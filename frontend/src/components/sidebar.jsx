@@ -45,19 +45,19 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
     ],
     student: [
       { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} />, link: "/student/dashboard" },
-      { id: "courses", label: "Courses", icon: <BookOpen size={20} />, link: "/student/courses" },
+      // { id: "courses", label: "Courses", icon: <BookOpen size={20} />, link: "/student/courses" },
       { id: "attendance", label: "Attendance", icon: <ClipboardList size={20} />, link: "/student/attendance" },
 
-      { id: "enroll", label: "Enroll Course", icon: <PlusCircle size={20} />, link: "/student/enroll" },
+      // { id: "enroll", label: "Enroll Course", icon: <PlusCircle size={20} />, link: "/student/enroll" },
     ],
     admin: [
       { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} />, link: "/admin/dashboard" },
       { id: "users", label: "Users", icon: <User size={20} />, link: "/admin/enrolledUsers" },
+      { id: "departments", label: "Department", icon: <Settings size={20} />, link: "/admin/manageDepartments" },
       { id: "courses", label: "Courses", icon: <BookOpen size={20} />, link: "/admin/manageCourses" },
       { id: "groups", label: "Groups", icon: <Users size={20} />, link: "/admin/manageGroups" },
       { id: "attendance", label: "Attendance", icon: <ClipboardList size={20} />, link: "/admin/manageAttendance" },
       { id: "settings", label: "Settings", icon: <Settings size={20} />, link: "/admin/adminSettings" },
-      { id: "departments", label: "Department", icon: <Settings size={20} />, link: "/admin/manageDepartments" },
     ]
   };
 
@@ -70,11 +70,6 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
   const isActive = (path) => {
     return location.pathname === path;
   };
-
-  // Get the appropriate background for sidebar based on theme
-  const sidebarBackground = isDark 
-    ? themeConfig.dark.gradientBackground
-    : themeConfig.light.sidebar;
 
   // Get appropriate text color based on theme
   const textColor = isDark
@@ -98,10 +93,10 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
   return (
     <div 
       className={`
-        transition-all duration-300  z-100
+        transition-all duration-300 z-100
         ${collapsed ? "w-20" : "w-64"} 
-        flex flex-col h-screen 
-        ${sidebarBackground}
+        flex flex-col min-h-full
+        ${isDark ? themeConfig.dark.gradientBackground : 'bg-white'}
         ${isDark ? 'border-r border-[#1E2733]' : 'border-r border-[#AAB7B8]'}
       `}
     >

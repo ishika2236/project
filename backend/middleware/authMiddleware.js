@@ -41,5 +41,18 @@ const isTeacher = (req, res, next)=>{
   
   next();
 }
+const authorizeRoles = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+    
+    next();
+  };
+};
 
-module.exports = {authMiddleware, isAdmin, isTeacher};
+module.exports = {authMiddleware, isAdmin, isTeacher, authorizeRoles};

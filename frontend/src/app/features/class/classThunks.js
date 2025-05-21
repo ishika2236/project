@@ -1,264 +1,159 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import classService from './classService';
 
-/**
- * Thunk for fetching classes by group
- */
-export const fetchClassesByGroup = createAsyncThunk(
-  'classes/fetchByGroup',
-  async (groupId, { rejectWithValue }) => {
+// Schedule a class
+export const scheduleClass = createAsyncThunk(
+  'classes/schedule',
+  async (classData, thunkAPI) => {
     try {
-      return await classService.getClassesByGroup(groupId);
+      return await classService.scheduleClass(classData);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to fetch classes';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for fetching classes by course
- */
-export const fetchClassesByCourse = createAsyncThunk(
-  'classes/fetchByCourse',
-  async (courseId, { rejectWithValue }) => {
+// Get all classes
+export const getAllClasses = createAsyncThunk(
+  'classes/getAll',
+  async (_, thunkAPI) => {
     try {
-      return await classService.getClassesByCourse(courseId);
+      return await classService.getAllClasses();
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to fetch classes';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for fetching classes by teacher
- */
-export const fetchClassesByTeacher = createAsyncThunk(
-  'classes/fetchByTeacher',
-  async (teacherId, { rejectWithValue }) => {
+// Get class by ID
+export const getClassById = createAsyncThunk(
+  'classes/getById',
+  async (id, thunkAPI) => {
     try {
-      return await classService.getClassesByTeacher(teacherId);
+      return await classService.getClassById(id);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to fetch classes';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for fetching a single class by ID
- */
-export const fetchClassById = createAsyncThunk(
-  'classes/fetchById',
-  async (classId, { rejectWithValue }) => {
+// Get classes for date range
+export const getClassesForDateRange = createAsyncThunk(
+  'classes/getForDateRange',
+  async ({ startDate, endDate, classroomId }, thunkAPI) => {
     try {
-      return await classService.getClassById(classId);
+      return await classService.getClassesForDateRange(startDate, endDate, classroomId);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to fetch class';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for creating a new class
- */
-export const createNewClass = createAsyncThunk(
-  'classes/create',
-  async (classData, { rejectWithValue }) => {
+// Get classes for a specific classroom
+export const getClassesByClassroom = createAsyncThunk(
+  'classes/getByClassroom',
+  async (classroomId, thunkAPI) => {
     try {
-      return await classService.createClass(classData);
+      // console.log(classroomId)
+      return await classService.getClassesByClassroom(classroomId);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to create class';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for updating a class
- */
-export const updateExistingClass = createAsyncThunk(
-  'classes/update',
-  async ({ classId, classData }, { rejectWithValue }) => {
+// Get classes for a specific classroom within a date range
+export const getClassesByClassroomForDateRange = createAsyncThunk(
+  'classes/getByClassroomForDateRange',
+  async ({ classroomId, startDate, endDate }, thunkAPI) => {
     try {
-      return await classService.updateClass(classId, classData);
+      return await classService.getClassesByClassroomForDateRange(classroomId, startDate, endDate);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to update class';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for deleting a class
- */
-export const deleteExistingClass = createAsyncThunk(
-  'classes/delete',
-  async (classId, { rejectWithValue }) => {
+// Reschedule a class
+export const rescheduleClass = createAsyncThunk(
+  'classes/reschedule',
+  async ({ id, scheduleData }, thunkAPI) => {
     try {
-      await classService.deleteClass(classId);
-      return classId;
+      return await classService.rescheduleClass(id, scheduleData);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to delete class';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for adding a schedule to a class (periodic class)
- */
-export const addClassSchedule = createAsyncThunk(
-  'classes/addSchedule',
-  async ({ classId, scheduleData }, { rejectWithValue }) => {
-    try {
-      return await classService.addSchedule(classId, scheduleData);
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to add schedule';
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Thunk for updating a schedule
- */
-export const updateClassSchedule = createAsyncThunk(
-  'classes/updateSchedule',
-  async ({ classId, scheduleId, scheduleData }, { rejectWithValue }) => {
-    try {
-      return await classService.updateSchedule(classId, scheduleId, scheduleData);
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to update schedule';
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Thunk for deleting a schedule
- */
-export const deleteClassSchedule = createAsyncThunk(
-  'classes/deleteSchedule',
-  async ({ classId, scheduleId }, { rejectWithValue }) => {
-    try {
-      await classService.deleteSchedule(classId, scheduleId);
-      return scheduleId;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to delete schedule';
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Thunk for creating a new session (extra class)
- */
-export const createClassSession = createAsyncThunk(
-  'classes/createSession',
-  async ({ classId, sessionData }, { rejectWithValue }) => {
-    try {
-      const result = await classService.createSession(classId, sessionData);
-      return result.session;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to create session';
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Thunk for updating a session
- */
-export const updateClassSession = createAsyncThunk(
-  'classes/updateSession',
-  async ({ classId, sessionId, sessionData }, { rejectWithValue }) => {
-    try {
-      const result = await classService.updateSession(classId, sessionId, sessionData);
-      return result.session;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to update session';
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Thunk for deleting a session
- */
-export const deleteClassSession = createAsyncThunk(
-  'classes/deleteSession',
-  async ({ classId, sessionId }, { rejectWithValue }) => {
-    try {
-      await classService.deleteSession(classId, sessionId);
-      return sessionId;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to delete session';
-      return rejectWithValue(message);
-    }
-  }
-);
-
-/**
- * Thunk for updating class location with geolocation
- */
-export const updateClassGeoLocation = createAsyncThunk(
+// Update class location
+export const updateClassLocation = createAsyncThunk(
   'classes/updateLocation',
-  async ({ classId, locationData }, { rejectWithValue }) => {
+  async ({ id, locationData }, thunkAPI) => {
     try {
-      const result = await classService.updateClassLocation(classId, locationData);
-      return result.classData;
+      return await classService.updateClassLocation(id, locationData);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to update location';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for marking attendance for a session
- */
-export const markSessionAttendance = createAsyncThunk(
-  'classes/markAttendance',
-  async ({ classId, sessionId, attendanceData }, { rejectWithValue }) => {
+// Update class notes
+export const updateClassNotes = createAsyncThunk(
+  'classes/updateNotes',
+  async ({ id, notesData }, thunkAPI) => {
     try {
-      const result = await classService.markAttendance(classId, sessionId, attendanceData);
-      return result.attendance;
+      return await classService.updateClassNotes(id, notesData);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to mark attendance';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for fetching attendance for a session
- */
-export const fetchSessionAttendance = createAsyncThunk(
-  'classes/fetchAttendance',
-  async ({ classId, sessionId }, { rejectWithValue }) => {
+// Update class topics
+export const updateClassTopics = createAsyncThunk(
+  'classes/updateTopics',
+  async ({ id, topicsData }, thunkAPI) => {
     try {
-      return await classService.getSessionAttendance(classId, sessionId);
+      return await classService.updateClassTopics(id, topicsData);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to fetch attendance';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );
 
-/**
- * Thunk for fetching teacher classrooms
- */
-export const fetchTeacherClassrooms = createAsyncThunk(
-  'classes/teacher',
-  async (_, { rejectWithValue }) => {
+// Update class special requirements
+export const updateSpecialRequirements = createAsyncThunk(
+  'classes/updateRequirements',
+  async ({ id, requirementsData }, thunkAPI) => {
     try {
-      return await classService.getTeacherClassrooms();
+      return await classService.updateSpecialRequirements(id, requirementsData);
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Failed to fetch classes';
-      return rejectWithValue(message);
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Delete a class
+export const deleteClass = createAsyncThunk(
+  'classes/delete',
+  async (id, thunkAPI) => {
+    try {
+      return await classService.deleteClass(id);
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
     }
   }
 );

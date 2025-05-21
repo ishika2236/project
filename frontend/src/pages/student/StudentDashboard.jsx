@@ -55,7 +55,7 @@ const StudentDashboard = () => {
         <Sidebar
         />
         <div className="w-full">
-          <Navbar/>
+          <Navbar title='Dashboard'/>
         <main className={`flex-1 overflow-y-auto p-6 ${themeConfig[theme].gradientBackground}`}>
           
           <Outlet/>

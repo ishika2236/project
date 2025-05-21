@@ -1,149 +1,112 @@
 import React, { useState } from 'react';
 import { useTheme } from '../../../context/ThemeProvider';
-import { Users, User, Calendar, Edit, UserPlus } from 'lucide-react';
-import StudentsList from './StudentsList';
+import { Edit, Plus, Users } from 'lucide-react';
+import GroupStudentList from './GroupStudentList';
 import AddStudentsModal from './AddStudentsModal';
 
 const GroupDetails = ({ 
   group, 
   onEdit, 
   onAddStudents, 
-  allStudents = [],
-  isAddingStudents = false 
+  onRemoveStudent,
+  allStudents = [], 
+  isAddingStudents = false,
+  isRemovingStudent = false
 }) => {
   const { themeConfig, theme } = useTheme();
   const colors = themeConfig[theme];
   
-  const [activeTab, setActiveTab] = useState('details');
   const [isAddStudentsModalOpen, setIsAddStudentsModalOpen] = useState(false);
-
-  const handleAddStudentsSubmit = (selectedStudents) => {
-    // Extract just the IDs from the selected students
-    const studentIds = selectedStudents.map(student => student._id || student.id);
+  
+  // Get the IDs of students already in the group
+  const currentStudentIds = group.students?.map(student => student._id || student.id) || [];
+  
+  const handleAddStudents = async (selectedStudents) => {
+    if (selectedStudents.length === 0) return;
     
-   
-    onAddStudents(group._id, studentIds);
+    // Extract just the IDs if onAddStudents expects only IDs
+    const studentIds = selectedStudents.map(student => student._id || student.id);
+    await onAddStudents(group._id, studentIds);
   };
-
-  // Get the actual student objects for the group
-  const groupStudents = group.students || [];
   
   return (
-    <div className={`${colors.card} rounded-lg overflow-hidden`}>
-      <div className={`p-6 border-b border-gray-700`}>
-        <div className="flex justify-between items-center">
-          <h2 className={`text-xl font-semibold ${colors.text}`}>{group.name}</h2>
+    <div className={`${colors.card} rounded-lg shadow-md p-6`}>
+      <div className="flex justify-between items-start mb-6">
+        <h2 className={`text-xl font-bold ${colors.text}`}>{group.name}</h2>
+        <button
+          onClick={onEdit}
+          className={`${colors.button.secondary} px-3 py-2 rounded-md flex items-center`}
+        >
+          <Edit size={16} className="mr-1" />
+          <span>Edit</span>
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+          <h3 className={`text-md font-semibold mb-2 ${colors.text}`}>Group Information</h3>
+          <div className={`${colors.secondaryCard} rounded-md p-4`}>
+            <p className={`${colors.secondaryText} mb-2`}>
+              <span className="font-semibold">Department:</span>{' '}
+              {group.department?.name || 'Not assigned'}
+            </p>
+            <p className={`${colors.secondaryText} mb-2`}>
+              <span className="font-semibold">Mentor:</span>{' '}
+              {group.mentor?.firstName && group.mentor?.lastName
+                ? `${group.mentor.firstName} ${group.mentor.lastName}`
+                : 'Not assigned'}
+            </p>
+            <p className={`${colors.secondaryText}`}>
+              <span className="font-semibold">Students:</span>{' '}
+              {group.students?.length || 0}
+            </p>
+          </div>
+        </div>
+        
+        <div>
+          <h3 className={`text-md font-semibold mb-2 ${colors.text}`}>Additional Details</h3>
+          <div className={`${colors.secondaryCard} rounded-md p-4`}>
+            {group.description ? (
+              <p className={`${colors.secondaryText}`}>{group.description}</p>
+            ) : (
+              <p className={`${colors.secondaryText} italic`}>No description available</p>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className={`text-md font-semibold ${colors.text}`}>Students</h3>
           <button
-            onClick={onEdit}
-            className={`${colors.button.primary} px-3 py-1 rounded-md flex items-center`}
+            onClick={() => setIsAddStudentsModalOpen(true)}
+            className={`${colors.button.primary} px-3 py-2 rounded-md flex items-center`}
           >
-            <Edit size={14} className="mr-1" />
-            Edit Group
+            <Plus size={16} className="mr-1" />
+            <span>Add Students</span>
           </button>
         </div>
-        {console.log(group)}
-        <div className={`mt-2 ${colors.secondaryText}`}>
-          Course: {group?.courses && group?.courses?.length > 0 ? (
-                  group.courses.map(course => (
-                    <li key={course._id}>{course.courseName}</li>
-                  ))
-                ) : (
-                  <li>No instructors assigned</li>
-                )}
-        </div>
-      </div>
-      
-      <div className="flex border-b border-gray-700">
-        <button
-          className={`px-4 py-3 ${activeTab === 'details' ? `${colors.text} border-b-2 border-blue-500` : colors.secondaryText}`}
-          onClick={() => setActiveTab('details')}
-        >
-          Group Details
-        </button>
-        <button
-          className={`px-4 py-3 ${activeTab === 'students' ? `${colors.text} border-b-2 border-blue-500` : colors.secondaryText}`}
-          onClick={() => setActiveTab('students')}
-        >
-          Students ({groupStudents.length})
-        </button>
-      </div>
-      
-      {activeTab === 'details' ? (
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className={`text-lg font-medium mb-4 ${colors.text}`}>Group Information</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <Calendar size={20} className={`${colors.secondaryText} mr-3 mt-1`} />
-                  <div>
-                    <p className={`${colors.secondaryText} text-sm`}>Created On</p>
-                    <p className={colors.text}>{group.createdAt}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <Users size={20} className={`${colors.secondaryText} mr-3 mt-1`} />
-                  <div>
-                    <p className={`${colors.secondaryText} text-sm`}>Student Count</p>
-                    <p className={colors.text}>{groupStudents.length} students</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className={`text-lg font-medium mb-4 ${colors.text}`}>Teacher Information</h3>
-              
-              <div className="flex items-start">
-                <User size={20} className={`${colors.secondaryText} mr-3 mt-1`} />
-                <div>
-                  <p className={`${colors.secondaryText} text-sm`}>Teacher</p>
-                  <p className={colors.text}>{group?.mentor?.firstName + " "+ group?.mentor?.lastName}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className={`text-lg font-medium ${colors.text}`}>
-              Students in Group
-            </h3>
-            <button
-              className={`${colors.button.green} px-3 py-1 rounded-md flex items-center text-sm`}
-              onClick={() => setIsAddStudentsModalOpen(true)}
-              disabled={isAddingStudents}
-            >
-              {isAddingStudents ? (
-                <>
-                  <div className="w-4 h-4 mr-2 border-t-2 border-b-2 border-white rounded-full animate-spin"></div>
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <UserPlus size={14} className="mr-1" />
-                  Add Student
-                </>
-              )}
-            </button>
-          </div>
-          
-          <StudentsList students={groupStudents} />
-          
-          {/* Add Students Modal */}
-          <AddStudentsModal 
-            isOpen={isAddStudentsModalOpen}
-            onClose={() => setIsAddStudentsModalOpen(false)}
-            onAddStudents={handleAddStudentsSubmit}
-            allStudents={allStudents}
-            currentStudentIds={groupStudents.map(s => s._id || s.id)}
-            isLoading={isAddingStudents}
+        
+        {/* Student list with remove functionality */}
+        <div className={`${colors.secondaryCard} rounded-md`}>
+          <GroupStudentList 
+            group={group} 
+            isAdmin={true} 
+            onRemoveStudent={onRemoveStudent}
+            isRemovingStudent={isRemovingStudent}
           />
         </div>
-      )}
+      </div>
+      
+      {/* Add Students Modal */}
+      <AddStudentsModal
+        isOpen={isAddStudentsModalOpen}
+        onClose={() => setIsAddStudentsModalOpen(false)}
+        onAddStudents={handleAddStudents}
+        allStudents={allStudents}
+        currentStudentIds={currentStudentIds}
+        isLoading={isAddingStudents}
+      />
     </div>
   );
 };

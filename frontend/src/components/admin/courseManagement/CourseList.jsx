@@ -87,7 +87,7 @@ const CourseCard = ({ course, onView, onEdit, onDelete, onAssignTeacher, colors 
               Edit
             </button>
             <button 
-              className={`flex items-center py-1 px-3 rounded-md ${colors.button.blue}`}
+              className={`flex items-center py-1 px-3 rounded-md ${colors.button.primary}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onAssignTeacher(course);

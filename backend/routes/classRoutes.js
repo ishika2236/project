@@ -1,37 +1,101 @@
 const express = require('express');
 const router = express.Router();
 const classController = require('../controller/classController');
-const { authMiddleware, isTeacher, isAdmin } = require('../middleware/authMiddleware');
+const { authMiddleware, authorizeRoles } = require('../middleware/authMiddleware');
 
-// Get routes - accessible by authenticated users
+/**
+ * Class Routes
+ */
 
-router.get('/teacher', authMiddleware,  classController.fetchTeacherClassrooms);
-router.get('/group/:groupId', authMiddleware, classController.getClassesByGroup);
-router.get('/course/:courseId', authMiddleware, classController.getClassesByCourse);
-router.get('/teacher/:teacherId', authMiddleware, classController.getClassesByTeacher);
-router.get('/:classId', authMiddleware, classController.getClassById);
+// Schedule a class (handles both regular and extra classes)
+router.post(
+  '/schedule',
+  authMiddleware,
+  authorizeRoles(['admin', 'teacher', 'department_head']),
+  classController.scheduleClass
+);
 
-// Create, update, delete - restricted to teachers and admins
-router.post('/', authMiddleware, isTeacher, classController.createClass);
-router.put('/:classId', authMiddleware, isTeacher, classController.updateClass);
-router.delete('/:classId', authMiddleware, isAdmin, classController.deleteClass);
+// Get all classes
+router.get(
+  '/',
+  authMiddleware,
+  classController.getAllClasses
+);
 
-// Schedule management - restricted to teachers and admins
-router.post('/:classId/schedule', authMiddleware, isTeacher, classController.addSchedule);
-router.put('/:classId/schedule/:scheduleId', authMiddleware, isTeacher, classController.updateSchedule);
-router.delete('/:classId/schedule/:scheduleId', authMiddleware, isTeacher, classController.deleteSchedule);
+// Get classes for a date range
+router.get(
+  '/daterange',
+  authMiddleware,
+  classController.getClassesForDateRange
+);
 
-// Session management (extra classes) - restricted to teachers and admins
-router.post('/:classId/session', authMiddleware, isTeacher, classController.createSession);
-router.put('/:classId/session/:sessionId', authMiddleware, isTeacher, classController.updateSession);
-router.delete('/:classId/session/:sessionId', authMiddleware, isTeacher, classController.deleteSession);
+// Get classes for a specific classroom
+router.get(
+  '/classroom/:classroomId',
+  authMiddleware,
+  classController.getClassesByClassroom
+);
 
-// Location management - restricted to teachers and admins
-router.put('/:classId/location', authMiddleware, isTeacher, classController.updateClassLocation);
+// Get classes for a specific classroom within a date range
+router.get(
+  '/classroom/:classroomId/daterange',
+  authMiddleware,
+  classController.getClassesByClassroomForDateRange
+);
 
-// Attendance routes
-router.get('/:classId/session/:sessionId/attendance', authMiddleware, classController.getSessionAttendance);
-router.post('/:classId/session/:sessionId/attendance', authMiddleware, classController.markAttendance);
+// Get a specific class by ID
+router.get(
+  '/:id',
+  authMiddleware,
+  classController.getClassById
+);
 
+// Reschedule a class
+router.put(
+  '/:id/schedule',
+  authMiddleware,
+  authorizeRoles(['admin', 'teacher', 'department_head']),
+  classController.rescheduleClass
+);
+
+// Update class location
+router.patch(
+  '/:id/location',
+  authMiddleware,
+  authorizeRoles(['admin', 'teacher', 'department_head']),
+  classController.updateClassLocation
+);
+
+// Update class notes
+router.patch(
+  '/:id/notes',
+  authMiddleware,
+  authorizeRoles(['admin', 'teacher', 'department_head']),
+  classController.updateClassNotes
+);
+
+// Update class topics
+router.patch(
+  '/:id/topics',
+  authMiddleware,
+  authorizeRoles(['admin', 'teacher', 'department_head']),
+  classController.updateClassTopics
+);
+
+// Update class special requirements
+router.patch(
+  '/:id/requirements',
+  authMiddleware,
+  authorizeRoles(['admin', 'teacher', 'department_head']),
+  classController.updateSpecialRequirements
+);
+
+// Delete a class
+router.delete(
+  '/:id',
+  authMiddleware,
+  authorizeRoles(['admin', 'teacher']),
+  classController.deleteClass
+);
 
 module.exports = router;

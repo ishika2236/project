@@ -6,7 +6,9 @@ import userReducer from './features/users/userSlice';
 import departmentReducer from './features/departments/departmentSlice';
 import authReducer from './features/auth/authSlice';
 import classReducer from './features/class/classSlice'
-
+import classroomReducer from './features/classroom/classroomSlice';
+import attendanceReducer from './features/attendance/attendanceSlice'
+import attendanceStatsReducer from './features/attendanceStats/attendanceStatsSlice'
 // Configure store without navigation middleware initially
 const store = configureStore({
   reducer: {
@@ -16,6 +18,9 @@ const store = configureStore({
     departments: departmentReducer,
     auth: authReducer,
     classes: classReducer,
+    classrooms : classroomReducer,
+    attendance: attendanceReducer,
+    attendanceStats : attendanceStatsReducer
   },
 });
 

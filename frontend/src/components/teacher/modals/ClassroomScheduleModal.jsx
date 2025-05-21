@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Calendar, Clock, X, Check, MapPin, Users, Book } from 'lucide-react';
 import { useTheme } from '../../context/ThemeProvider';
-import { 
-  addClassSchedule, 
-  updateClassSchedule, 
-  deleteClassSchedule 
-} from '../../app/features/class/classThunks';
+
 
 export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create', classData, onSave, classroom }) {
   const dispatch = useDispatch();
@@ -14,9 +10,7 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
   const isDark = theme === 'dark';
   
   // Get the current classroom data from props or redux state
-  
-  const currentClass = classroom
-  console.log(currentClass)
+  const currentClass = classroom;
   
   // Form state
   const [formData, setFormData] = useState({
@@ -35,11 +29,24 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
   // Set initial form data when editing
   useEffect(() => {
     if (mode === 'edit' && classData) {
+      // For edit mode, parse existing data
+      let startTime = '';
+      let endTime = '';
+      
+      // Parse time if available (format: "10:30 AM - 12:00 PM")
+      if (classData.time && classData.time.includes(' - ')) {
+        [startTime, endTime] = classData.time.split(' - ');
+      } else {
+        // Try to use startTime and endTime if available directly
+        startTime = classData.startTime || '';
+        endTime = classData.endTime || '';
+      }
+      
       setFormData({
         topic: classData.topic || '',
         date: formatDateForInput(classData.date) || '',
-        startTime: classData.time?.split(' - ')[0] || '',
-        endTime: classData.time?.split(' - ')[1] || '',
+        startTime: startTime,
+        endTime: endTime,
         location: classData.location || '',
         description: classData.description || '',
         materials: classData.materials || []
@@ -61,8 +68,20 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
   // Format date from "Month DD, YYYY" to YYYY-MM-DD for input field
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    
+    // Check if date is already in ISO format
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) {
+      return dateString.split('T')[0];
+    }
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return ''; // Invalid date
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return '';
+    }
   };
 
   // Handle input changes
@@ -77,38 +96,22 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.topic || !formData.date || !formData.startTime || !formData.endTime) {
+      alert("Please fill in all required fields: Topic, Date, Start Time, and End Time");
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Format time for consistent display
-    const formattedData = {
-      ...formData,
-      time: `${formData.startTime} - ${formData.endTime}`,
-      course: classroom?.courseDetails?._id || classroom?.id,
-      group: classroom?.relatedGroups?.length > 0 ? classroom.relatedGroups[0]._id : undefined
-    };
-    
     try {
-      if (mode === 'create') {
-        // Dispatch create action
-        await dispatch(addClassSchedule({
-          classId: classroom?.id || classroom?._id,
-          scheduleData: formattedData
-        }));
-      } else if (mode === 'edit') {
-        // Dispatch update action
-        await dispatch(updateClassSchedule({
-          classId: classroom?.id || classroom?._id,
-          scheduleId: classData?.id,
-          scheduleData: formattedData
-        }));
-      }
-      
-      // Call the onSave callback with the formData
-      onSave(formattedData);
+      // Call onSave with the form data
+      // The parent component will handle the actual API call
+      await onSave(formData);
       setIsSubmitting(false);
-      onClose();
     } catch (err) {
-      console.error("Error saving schedule:", err);
+      console.error("Error in form submission:", err);
       setIsSubmitting(false);
     }
   };
@@ -118,10 +121,7 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
     if (window.confirm("Are you sure you want to cancel this class?")) {
       setIsSubmitting(true);
       try {
-        await dispatch(deleteClassSchedule({
-          classId: classroom?.id || classroom?._id,
-          scheduleId: classData?.id
-        }));
+        
         setIsSubmitting(false);
         onClose();
       } catch (err) {
@@ -144,6 +144,14 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
     }
   };
 
+  // Handle keypress for materials input
+  const handleMaterialKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addMaterial();
+    }
+  };
+
   // Handle removing a material
   const removeMaterial = (index) => {
     setFormData({
@@ -153,6 +161,11 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
   };
 
   if (!isOpen) return null;
+
+  // Get course and group info from classroom object
+  const courseName = classroom?.courseName || classroom?.courseDetails?.name || "Not specified";
+  const groupName = classroom?.groupName || 
+                   (classroom?.relatedGroups?.length > 0 ? classroom.relatedGroups[0].name : "Unassigned");
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -201,7 +214,7 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
                 <div className={`p-3 rounded-lg border ${
                   isDark ? 'border-[#1E2733] bg-[#0A0E13] text-gray-400' : 'border-indigo-200 bg-gray-50 text-gray-700'
                 }`}>
-                  {classroom?.courseName || classroom?.courseDetails?.name || "Not specified"}
+                  {courseName}
                 </div>
               </div>
               
@@ -214,7 +227,7 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
                 <div className={`p-3 rounded-lg border ${
                   isDark ? 'border-[#1E2733] bg-[#0A0E13] text-gray-400' : 'border-indigo-200 bg-gray-50 text-gray-700'
                 }`}>
-                  {classroom?.groupName || (classroom?.relatedGroups?.length > 0 ? classroom.relatedGroups[0].name : "Unassigned")}
+                  {groupName}
                 </div>
               </div>
             </div>
@@ -399,6 +412,7 @@ export default function ClassroomScheduleModal({ isOpen, onClose, mode = 'create
                   type="text"
                   value={newMaterial}
                   onChange={(e) => setNewMaterial(e.target.value)}
+                  onKeyPress={handleMaterialKeyPress}
                   className={`flex-1 p-2 rounded-l-lg ${
                     isDark 
                       ? 'bg-[#0A0E13] text-white border border-[#1E2733]' 

@@ -25,6 +25,7 @@ import { toast } from 'react-toastify';
 import { fetchDepartments } from '../../app/features/departments/departmentThunks';
 import { fetchTeachers } from '../../app/features/users/userThunks';
 import { fetchAllGroups } from '../../app/features/groups/groupThunks';
+import { createClassroom } from '../../app/features/classroom/classroomThunks';
 
 export default function CourseManagement() {
   const { themeConfig, theme } = useTheme();
@@ -244,6 +245,7 @@ export default function CourseManagement() {
   const handleAssignTeacher = async (data) => {
     try {
       await dispatch(assignTeacherToCourse(data)).unwrap();
+      await dispatch(createClassroom(data)).unwrap();
       setIsAssigningTeacher(false);
     } catch (err) {
       console.error('Failed to assign teacher:', err);

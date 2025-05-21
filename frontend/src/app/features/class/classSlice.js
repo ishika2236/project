@@ -1,301 +1,250 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { 
-  fetchClassesByGroup, 
-  fetchClassesByCourse, 
-  fetchClassesByTeacher,
-  fetchClassById,
-  createNewClass,
-  updateExistingClass,
-  deleteExistingClass,
-  addClassSchedule,
-  updateClassSchedule,
-  deleteClassSchedule,
-  createClassSession,
-  updateClassSession,
-  deleteClassSession,
-  updateClassGeoLocation,
-  markSessionAttendance,
-  fetchSessionAttendance,
-  fetchTeacherClassrooms
+  scheduleClass, 
+  getAllClasses, 
+  getClassById, 
+  getClassesForDateRange, 
+  getClassesByClassroom,
+  getClassesByClassroomForDateRange,
+  rescheduleClass, 
+  updateClassLocation, 
+  updateClassNotes, 
+  updateClassTopics, 
+  updateSpecialRequirements, 
+  deleteClass 
 } from './classThunks';
 
-/**
- * Redux slice for class management
- */
+// Initial state
+const initialState = {
+  classes: [],
+  currentClass: null,
+  isLoading: false,
+  isSuccess: false,
+  isError: false,
+  message: '',
+};
+
 const classSlice = createSlice({
-  name: 'classes',
-  initialState: {
-    classes: [],
-    currentClass: null,
-    sessions: [],
-    attendance: [],
-    loading: false,
-    error: null,
-    success: false,
-    message: '',
-    teacherClassrooms: {
-      department: null,
-      teachingAssignments: []
-    }
-  },
+  name: 'class',
+  initialState,
   reducers: {
-    // Reset status
-    resetStatus: (state) => {
-      state.loading = false;
-      state.error = null;
-      state.success = false;
+    reset: (state) => {
+      state.isLoading = false;
+      state.isSuccess = false;
+      state.isError = false;
       state.message = '';
+    },
+    clearCurrentClass: (state) => {
+      state.currentClass = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Common pending handler for all async thunks
+      // Schedule class
+      .addCase(scheduleClass.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(scheduleClass.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.classes.push(action.payload);
+        state.currentClass = action.payload;
+        state.message = 'Class scheduled successfully';
+      })
+      .addCase(scheduleClass.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
       
-      
-      // Fetch classes thunks
-      .addCase(fetchClassesByGroup.fulfilled, (state, action) => {
-        state.loading = false;
+      // Get all classes
+      .addCase(getAllClasses.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getAllClasses.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
         state.classes = action.payload;
       })
-      .addCase(fetchClassesByCourse.fulfilled, (state, action) => {
-        state.loading = false;
-        state.classes = action.payload;
-      })
-      .addCase(fetchClassesByTeacher.fulfilled, (state, action) => {
-        state.loading = false;
-        state.classes = action.payload;
+      .addCase(getAllClasses.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
       })
       
-      // Get single class by ID
-      .addCase(fetchClassById.fulfilled, (state, action) => {
-        state.loading = false;
+      // Get class by ID
+      .addCase(getClassById.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getClassById.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
         state.currentClass = action.payload;
       })
-      
-      // Create class
-      .addCase(createNewClass.fulfilled, (state, action) => {
-        state.loading = false;
-        state.classes.push(action.payload);
-        state.success = true;
-        state.message = 'Class created successfully';
+      .addCase(getClassById.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
       })
       
-      // Update class
-      .addCase(updateExistingClass.fulfilled, (state, action) => {
-        state.loading = false;
-        state.classes = state.classes.map(cls => 
-          cls._id === action.payload._id ? action.payload : cls
+      // Get classes for date range
+      .addCase(getClassesForDateRange.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getClassesForDateRange.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.classes = action.payload;
+      })
+      .addCase(getClassesForDateRange.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Get classes by classroom
+      .addCase(getClassesByClassroom.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getClassesByClassroom.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.classes = action.payload;
+      })
+      .addCase(getClassesByClassroom.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Get classes by classroom for date range
+      .addCase(getClassesByClassroomForDateRange.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getClassesByClassroomForDateRange.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.classes = action.payload;
+      })
+      .addCase(getClassesByClassroomForDateRange.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Reschedule class
+      .addCase(rescheduleClass.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(rescheduleClass.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.currentClass = action.payload;
+        state.classes = state.classes.map((c) => 
+          c._id === action.payload._id ? action.payload : c
         );
-        
-        // Also update currentClass if it's the one being updated
-        if (state.currentClass && state.currentClass._id === action.payload._id) {
-          state.currentClass = action.payload;
-        }
-        
-        state.success = true;
-        state.message = 'Class updated successfully';
+        state.message = 'Class rescheduled successfully';
+      })
+      .addCase(rescheduleClass.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Update class location
+      .addCase(updateClassLocation.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateClassLocation.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.currentClass = action.payload;
+        state.classes = state.classes.map((c) => 
+          c._id === action.payload._id ? action.payload : c
+        );
+        state.message = 'Class location updated successfully';
+      })
+      .addCase(updateClassLocation.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Update class notes
+      .addCase(updateClassNotes.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateClassNotes.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.currentClass = action.payload;
+        state.classes = state.classes.map((c) => 
+          c._id === action.payload._id ? action.payload : c
+        );
+        state.message = 'Class notes updated successfully';
+      })
+      .addCase(updateClassNotes.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Update class topics
+      .addCase(updateClassTopics.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateClassTopics.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.currentClass = action.payload;
+        state.classes = state.classes.map((c) => 
+          c._id === action.payload._id ? action.payload : c
+        );
+        state.message = 'Class topics updated successfully';
+      })
+      .addCase(updateClassTopics.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Update special requirements
+      .addCase(updateSpecialRequirements.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateSpecialRequirements.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.currentClass = action.payload;
+        state.classes = state.classes.map((c) => 
+          c._id === action.payload._id ? action.payload : c
+        );
+        state.message = 'Special requirements updated successfully';
+      })
+      .addCase(updateSpecialRequirements.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
       })
       
       // Delete class
-      .addCase(deleteExistingClass.fulfilled, (state, action) => {
-        state.loading = false;
-        state.classes = state.classes.filter(cls => cls._id !== action.payload);
-        
-        // Clear currentClass if it's the one deleted
-        if (state.currentClass && state.currentClass._id === action.payload) {
-          state.currentClass = null;
-        }
-        
-        state.success = true;
+      .addCase(deleteClass.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(deleteClass.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.classes = state.classes.filter((c) => c._id !== action.meta.arg);
+        state.currentClass = null;
         state.message = 'Class deleted successfully';
       })
-      
-      // Add schedule
-      .addCase(addClassSchedule.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentClass = action.payload;
-        
-        // Also update in classes list if present
-        if (state.currentClass) {
-          state.classes = state.classes.map(cls => 
-            cls._id === state.currentClass._id ? state.currentClass : cls
-          );
-        }
-        
-        state.success = true;
-        state.message = 'Schedule added successfully';
-      })
-      
-      // Update schedule
-      .addCase(updateClassSchedule.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentClass = action.payload;
-        
-        // Also update in classes list if present
-        if (state.currentClass) {
-          state.classes = state.classes.map(cls => 
-            cls._id === state.currentClass._id ? state.currentClass : cls
-          );
-        }
-        
-        state.success = true;
-        state.message = 'Schedule updated successfully';
-      })
-      
-      // Delete schedule
-      .addCase(deleteClassSchedule.fulfilled, (state, action) => {
-        state.loading = false;
-        
-        // Remove schedule from current class
-        if (state.currentClass && state.currentClass.schedule) {
-          state.currentClass = {
-            ...state.currentClass,
-            schedule: state.currentClass.schedule.filter(schedule => 
-              schedule._id !== action.payload
-            )
-          };
-          
-          // Also update in classes list if present
-          state.classes = state.classes.map(cls => 
-            cls._id === state.currentClass._id ? state.currentClass : cls
-          );
-        }
-        
-        state.success = true;
-        state.message = 'Schedule removed successfully';
-      })
-      
-      // Create session
-      .addCase(createClassSession.fulfilled, (state, action) => {
-        state.loading = false;
-        
-        // If the current class is set, update its sessions
-        if (state.currentClass) {
-          state.currentClass = {
-            ...state.currentClass,
-            sessions: [...(state.currentClass.sessions || []), action.payload]
-          };
-        }
-        
-        state.success = true;
-        state.message = 'Session created successfully';
-      })
-      
-      // Update session
-      .addCase(updateClassSession.fulfilled, (state, action) => {
-        state.loading = false;
-        
-        // If the current class is set, update the specific session
-        if (state.currentClass && state.currentClass.sessions) {
-          state.currentClass = {
-            ...state.currentClass,
-            sessions: state.currentClass.sessions.map(session => 
-              session._id === action.payload._id ? action.payload : session
-            )
-          };
-        }
-        
-        state.success = true;
-        state.message = 'Session updated successfully';
-      })
-      
-      // Delete session
-      .addCase(deleteClassSession.fulfilled, (state, action) => {
-        state.loading = false;
-        
-        // If the current class is set, remove the session
-        if (state.currentClass && state.currentClass.sessions) {
-          state.currentClass = {
-            ...state.currentClass,
-            sessions: state.currentClass.sessions.filter(session => 
-              session._id !== action.payload
-            )
-          };
-        }
-        
-        state.success = true;
-        state.message = 'Session deleted successfully';
-      })
-      
-      // Update location
-      .addCase(updateClassGeoLocation.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentClass = action.payload;
-        
-        // Also update in classes list if present
-        if (state.currentClass) {
-          state.classes = state.classes.map(cls => 
-            cls._id === state.currentClass._id ? state.currentClass : cls
-          );
-        }
-        
-        state.success = true;
-        state.message = 'Location updated successfully';
-      })
-      
-      // Mark attendance
-      .addCase(markSessionAttendance.fulfilled, (state, action) => {
-        state.loading = false;
-        
-        // Check if attendance record already exists
-        const existingIndex = state.attendance.findIndex(
-          record => record.student._id === action.payload.student._id
-        );
-        
-        if (existingIndex >= 0) {
-          // Update existing record
-          state.attendance = [
-            ...state.attendance.slice(0, existingIndex),
-            action.payload,
-            ...state.attendance.slice(existingIndex + 1)
-          ];
-        } else {
-          // Add new record
-          state.attendance = [...state.attendance, action.payload];
-        }
-        
-        state.success = true;
-        state.message = 'Attendance recorded successfully';
-      })
-      
-      // Fetch attendance
-      .addCase(fetchSessionAttendance.fulfilled, (state, action) => {
-        state.loading = false;
-        state.attendance = action.payload;
-      })
-      
-      // Teacher classrooms
-      .addCase(fetchTeacherClassrooms.fulfilled, (state, action) => {
-        state.loading = false;
-        state.teacherClassrooms = action.payload;
-        
-        // If you also need the plain class list separately
-        if (action.payload.teachingAssignments) {
-          state.classes = action.payload.teachingAssignments;
-        }
-      })
-      .addMatcher(
-        (action) => action.type.endsWith('/pending'),
-        (state) => {
-          state.loading = true;
-          state.error = null;
-          state.success = false;
-          state.message = '';
-        }
-      )
-      // Common rejected handler for all async thunks
-      .addMatcher(
-        (action) => action.type.endsWith('/rejected'),
-        (state, action) => {
-          state.loading = false;
-          state.error = action.payload || action.error.message;
-        }
-      );
-  }
+      .addCase(deleteClass.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      });
+  },
 });
 
-// Export actions
-export const { resetStatus } = classSlice.actions;
-
-// Export reducer
+export const { reset, clearCurrentClass } = classSlice.actions;
 export default classSlice.reducer;

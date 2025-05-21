@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const userSchema = new mongoose.Schema({
+const userSchema = new Schema({
     firstName: {
         type: String,
         required: true,
@@ -44,30 +45,6 @@ const userSchema = new mongoose.Schema({
         pincode: String,
         country: String
     },
-    // Fields specific to students
-    rollNumber: {
-        type: String,
-        sparse: true
-    },
-    admissionYear: {
-        type: Number,
-        sparse: true
-    },
-    // Fields specific to teachers
-    employeeId: {
-        type: String,
-        sparse: true
-    },
-    teachingAssignments: [{
-        course: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Course'
-        },
-        group: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Group'
-        }
-    }],
     dateOfBirth: {
         type: Date,
         required: true
@@ -78,16 +55,35 @@ const userSchema = new mongoose.Schema({
         required: true
     },
     department: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: 'Department'
     },
+    // Profile image fields
+    profileImage: {
+        type: String,
+        default: null
+    },
+    faceEmbedding: {
+        type: Schema.Types.ObjectId,
+        ref: 'Embedding'
+    },
+    
+    // Fields specific to students
+    rollNumber: {
+        type: String,
+        sparse: true
+    },
+    admissionYear: {
+        type: Number,
+        sparse: true
+    },
     group: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: 'Group'
     },
     enrolledCourses: [{
         course: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: 'Course'
         },
         enrollmentDate: {
@@ -95,24 +91,57 @@ const userSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
-    // Profile image fields
-    profileImage: {
+    
+    // Fields specific to teachers
+    employeeId: {
         type: String,
-        default: null
+        sparse: true
     },
-    faceEmbedding: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Embedding'
+    teachingAssignments: [{
+        course: {
+            type: Schema.Types.ObjectId,
+            ref: 'Course'
+        },
+        group: {
+            type: Schema.Types.ObjectId,
+            ref: 'Group'
+        }
+    }],
+    
+    // Admin-specific field
+    isAdmin: {
+        type: Boolean,
+        default: function() {
+            return this.role === 'admin';
+        }
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
+}, {
+    timestamps: true
 });
+
+// Add virtual getters for compatibility with existing code
+userSchema.virtual('fullName').get(function() {
+    return `${this.firstName} ${this.lastName}`;
+});
+
+// Ensure the existing code using separate models still works
+// with our unified User model
+userSchema.statics.findStudents = function(query = {}) {
+    return this.find({ ...query, role: 'student' });
+};
+
+userSchema.statics.findTeachers = function(query = {}) {
+    return this.find({ ...query, role: 'teacher' });
+};
+
+userSchema.statics.findAdmins = function(query = {}) {
+    return this.find({ ...query, role: 'admin' });
+};
+
+// Indexes for better query performance
+userSchema.index({ role: 1 });
+userSchema.index({ rollNumber: 1 }, { sparse: true });
+userSchema.index({ employeeId: 1 }, { sparse: true });
 
 const User = mongoose.model('User', userSchema);
 

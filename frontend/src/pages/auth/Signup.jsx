@@ -650,7 +650,7 @@ const Signup = () => {
           </span>
         </p>
         
-        <SocialLoginButtons getThemedClass={getThemedClass} />
+        {/* <SocialLoginButtons getThemedClass={getThemedClass} /> */}
         
         {/* Add accent element for light theme only */}
         {theme !== 'dark' && (
