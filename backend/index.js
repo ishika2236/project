@@ -41,7 +41,9 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/attendanceStats', attendanceStatsRoutes);
 // Connect to MongoDB
 connectDB();
-
+app.get('/', (req, res) => {
+    res.send('Hello World, I am the backend');
+});
 // Error handling middleware
 
 const PORT = process.env.PORT || 5000;
