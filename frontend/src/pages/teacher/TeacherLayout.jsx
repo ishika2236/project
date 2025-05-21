@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../../components/sidebar";
-import Navbar from "../../components/Navbar";
+import Navbar from "../../components/navbar";
 export default function TeacherLayout({}) {
     return (
       <div className="flex h-screen overflow-hidden bg-gray-100">
