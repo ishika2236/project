@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   Calendar, 
@@ -13,8 +13,8 @@ import {
   FileText 
 } from 'lucide-react';
 import ClassSchedulingModal from './modals/ClassSchedulingModal';
-import LocationUpdateModal from './modals/LocationUpdateModal'; // You'll need to create this component
-import ClassInfoUpdateModal from './modals/ClassInfoUpdateModal'; // You'll need to create this component
+import LocationUpdateModal from './modals/LocationUpdateModal';
+import ClassInfoUpdateModal from './modals/ClassInfoUpdateModal';
 import { 
   getClassesForDateRange, 
   getClassesByClassroomForDateRange,
@@ -26,7 +26,7 @@ import {
   updateClassTopics,
   updateSpecialRequirements
 } from '../../app/features/class/classThunks';
-import {reset} from './../../app/features/class/classSlice';
+import { reset } from './../../app/features/class/classSlice';
 
 const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
   const dispatch = useDispatch();
@@ -42,38 +42,54 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
   const [localError, setLocalError] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
 
-  // Fetch classes for this classroom
-  useEffect(() => {
+  // Fetch classes function
+  const fetchClasses = useCallback(() => {
     if (!classroom?.id) return;
     
-    // Get classes for the next 6 months
     const startDate = new Date().toISOString();
     const endDate = new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString();
     
-    dispatch(getClassesByClassroomForDateRange({ startDate, endDate, classroomId: classroom.id }));
+    dispatch(getClassesByClassroomForDateRange({ 
+      startDate, 
+      endDate, 
+      classroomId: classroom.id 
+    }));
+  }, [dispatch, classroom?.id]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchClasses();
     
     // Cleanup on unmount
     return () => {
       dispatch(reset());
     };
-  }, [dispatch, classroom?.id]);
+  }, [fetchClasses, dispatch]);
 
   // Handle Redux state updates
   useEffect(() => {
     if (isSuccess && message) {
       setSuccessMessage(message);
-      setTimeout(() => {
+      
+      // Clear success message after 3 seconds
+      const timer = setTimeout(() => {
         setSuccessMessage('');
         dispatch(reset());
       }, 3000);
+
+      return () => clearTimeout(timer);
     }
 
     if (isError && message) {
       setLocalError(message);
-      setTimeout(() => {
+      
+      // Clear error message after 3 seconds
+      const timer = setTimeout(() => {
         setLocalError(null);
         dispatch(reset());
       }, 3000);
+
+      return () => clearTimeout(timer);
     }
   }, [isSuccess, isError, message, dispatch]);
 
@@ -86,7 +102,6 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
   const handleOpenLocationModal = (classItem) => {
     setSelectedClass(classItem);
     
-    // Get current location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -99,12 +114,12 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         (error) => {
           console.error("Error getting location:", error);
           setLocalError("Failed to get your location. Please enable location services.");
-          setIsLocationModalOpen(true); // Still open modal for manual entry
+          setIsLocationModalOpen(true);
         }
       );
     } else {
       setLocalError("Geolocation is not supported by your browser.");
-      setIsLocationModalOpen(true); // Still open modal for manual entry
+      setIsLocationModalOpen(true);
     }
   };
 
@@ -120,31 +135,39 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
     setSelectedClass(null);
   };
 
-  // Action handlers
+  // Action handlers with proper error handling and state updates
   const handleSaveSchedule = async (scheduleData) => {
     try {
+      let result;
+      
       if (selectedClass) {
         // Update existing class schedule
-        await dispatch(rescheduleClass({ 
+        result = await dispatch(rescheduleClass({ 
           id: selectedClass._id, 
           scheduleData: { 
             ...scheduleData,
-            classroom: classroom._id 
+            classroom: classroom.id 
           } 
         })).unwrap();
       } else {
         // Create new class
-        await dispatch(scheduleClass({
+        result = await dispatch(scheduleClass({
           ...scheduleData,
           classroom: classroom.id
         })).unwrap();
       }
       
+      // Close modal immediately after successful operation
       handleCloseModals();
+      
+      // The Redux state should update automatically through the slice
+      // No need to manually fetch classes again as the slice handles the state update
       
     } catch (err) {
       console.error('Error scheduling class:', err);
-      setLocalError('Failed to schedule class. Please try again.');
+      setLocalError(err || 'Failed to schedule class. Please try again.');
+      
+      // Clear error after 3 seconds
       setTimeout(() => setLocalError(null), 3000);
     }
   };
@@ -162,7 +185,7 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
       
     } catch (err) {
       console.error('Error updating location:', err);
-      setLocalError('Failed to update location. Please try again.');
+      setLocalError(err || 'Failed to update location. Please try again.');
       setTimeout(() => setLocalError(null), 3000);
     }
   };
@@ -171,45 +194,57 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
     try {
       if (!selectedClass) return;
       
-      // Depending on what's being updated, dispatch different actions
-      if (classInfoData.notes) {
-        await dispatch(updateClassNotes({
-          id: selectedClass._id,
-          notesData: { notes: classInfoData.notes }
-        })).unwrap();
+      // Update different fields based on what's provided
+      const updatePromises = [];
+      
+      if (classInfoData.notes !== undefined) {
+        updatePromises.push(
+          dispatch(updateClassNotes({
+            id: selectedClass._id,
+            notesData: { notes: classInfoData.notes }
+          }))
+        );
       }
       
-      if (classInfoData.topics) {
-        await dispatch(updateClassTopics({
-          id: selectedClass._id,
-          topicsData: { topics: classInfoData.topics }
-        })).unwrap();
+      if (classInfoData.topics !== undefined) {
+        updatePromises.push(
+          dispatch(updateClassTopics({
+            id: selectedClass._id,
+            topicsData: { topics: classInfoData.topics }
+          }))
+        );
       }
       
-      if (classInfoData.specialRequirements) {
-        await dispatch(updateSpecialRequirements({
-          id: selectedClass._id,
-          requirementsData: { specialRequirements: classInfoData.specialRequirements }
-        })).unwrap();
+      if (classInfoData.specialRequirements !== undefined) {
+        updatePromises.push(
+          dispatch(updateSpecialRequirements({
+            id: selectedClass._id,
+            requirementsData: { specialRequirements: classInfoData.specialRequirements }
+          }))
+        );
       }
       
       // For title and other general fields, use rescheduleClass
       const generalUpdates = {};
       if (classInfoData.title) generalUpdates.title = classInfoData.title;
-      // Add other general fields as needed
       
       if (Object.keys(generalUpdates).length > 0) {
-        await dispatch(rescheduleClass({
-          id: selectedClass._id,
-          scheduleData: generalUpdates
-        })).unwrap();
+        updatePromises.push(
+          dispatch(rescheduleClass({
+            id: selectedClass._id,
+            scheduleData: generalUpdates
+          }))
+        );
       }
+      
+      // Wait for all updates to complete
+      await Promise.all(updatePromises.map(p => p.unwrap()));
       
       handleCloseModals();
       
     } catch (err) {
       console.error('Error updating class info:', err);
-      setLocalError('Failed to update class information. Please try again.');
+      setLocalError(err || 'Failed to update class information. Please try again.');
       setTimeout(() => setLocalError(null), 3000);
     }
   };
@@ -219,15 +254,17 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
     
     try {
       await dispatch(deleteClass(classId)).unwrap();
+      // The Redux slice will handle removing the class from the state
     } catch (err) {
       console.error('Error deleting class:', err);
-      setLocalError('Failed to delete class. Please try again.');
+      setLocalError(err || 'Failed to delete class. Please try again.');
       setTimeout(() => setLocalError(null), 3000);
     }
   };
 
   // Format date for display
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
@@ -235,10 +272,8 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
   // Format time for display
   const formatTime = (timeString) => {
     try {
-      // Handle different time formats
       if (!timeString) return '';
       
-      // If timeString is already in HH:MM format
       if (timeString.includes(':')) {
         const [hours, minutes] = timeString.split(':');
         const time = new Date();
@@ -247,11 +282,10 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
       
-      // If timeString is a date string
       return new Date(timeString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (err) {
       console.error('Error formatting time:', err);
-      return timeString; // Return original if parsing fails
+      return timeString;
     }
   };
 
@@ -260,7 +294,6 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
     if (!daysArray || !Array.isArray(daysArray) || daysArray.length === 0) return 'No days set';
     
     return daysArray.map(day => {
-      // Convert number to day name if needed
       if (typeof day === 'number') {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         return days[day];
@@ -269,25 +302,28 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
     }).join(', ');
   };
 
-  // Group classes by regular vs extra
-  const regularClasses = classes.filter(c => !c.isExtraClass);
-  const extraClasses = classes.filter(c => c.isExtraClass);
-
   // Location display helper
   const getLocationDisplay = (classItem) => {
     if (!classItem.location) return "No location set";
     
     if (classItem.location.room && classItem.location.building) {
-      return classItem.location.room +" "+ classItem.location.building ;
+      return `${classItem.location.room} ${classItem.location.building}`;
     } 
     else if (classItem.location.room) {
-      return classItem.location.room ;
+      return classItem.location.room;
     } else if (classItem.location.latitude && classItem.location.longitude) {
       return `Lat: ${classItem.location.latitude.toFixed(4)}, Long: ${classItem.location.longitude.toFixed(4)}`;
     } else {
       return "Location set";
     }
   };
+
+  // Ensure classes is always an array
+  const safeClasses = Array.isArray(classes) ? classes : [];
+  
+  // Group classes by regular vs extra
+  const regularClasses = safeClasses.filter(c => !c.isExtraClass);
+  const extraClasses = safeClasses.filter(c => c.isExtraClass);
 
   return (
     <div className="space-y-6">
@@ -298,11 +334,12 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         </h2>
         <button
           onClick={() => handleOpenScheduleModal()}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+          disabled={isLoading}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
             isDark 
               ? currentTheme.button.primary
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
+          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <Plus size={16} />
           <span>Schedule Class</span>
@@ -339,7 +376,7 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
       )}
 
       {/* No Classes State */}
-      {!isLoading && classes.length === 0 && (
+      {!isLoading && safeClasses.length === 0 && (
         <div className={`flex flex-col items-center justify-center p-8 rounded-lg ${
           isDark ? 'bg-[#121A22]/50 border border-[#1E2733]' : 'bg-gray-50 border border-gray-200'
         }`}>
@@ -352,11 +389,12 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
           </p>
           <button
             onClick={() => handleOpenScheduleModal()}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+            disabled={isLoading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               isDark 
                 ? 'bg-[#1E2733] text-white hover:bg-[#283647]'
                 : 'bg-white text-indigo-600 border border-indigo-600 hover:bg-indigo-50'
-            }`}
+            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <Plus size={16} />
             <span>Schedule Your First Class</span>
@@ -369,16 +407,16 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         <div className={`rounded-lg overflow-hidden ${isDark ? 'bg-[#121A22]/50 border border-[#1E2733]' : 'bg-white border border-gray-200'}`}>
           <div className={`p-4 ${isDark ? 'bg-[#1E2733]' : 'bg-gray-50'}`}>
             <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Regular Classes
+              Regular Classes ({regularClasses.length})
             </h3>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-[#1E2733]">
             {regularClasses.map(classItem => (
-              <div key={classItem._id} className={`p-4 ${isDark ? 'hover:bg-[#1E2733]/50' : 'hover:bg-gray-50'}`}>
+              <div key={`regular-${classItem._id}`} className={`p-4 transition-colors ${isDark ? 'hover:bg-[#1E2733]/50' : 'hover:bg-gray-50'}`}>
                 <div className="flex justify-between items-start">
                   <div className="w-3/4">
                     <h4 className={`font-medium mb-1 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                      {classItem.title}
+                      {classItem.title || 'Untitled Class'}
                     </h4>
                     <div className={`flex items-center gap-3 mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       <span className="flex items-center gap-1">
@@ -404,22 +442,24 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleOpenScheduleModal(classItem)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-blue-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-blue-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Reschedule Class"
                       >
                         <RefreshCw size={16} />
                       </button>
                       <button
                         onClick={() => handleOpenLocationModal(classItem)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-green-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-green-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Update Location"
                       >
                         <MapPin size={16} />
@@ -428,22 +468,24 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleOpenInfoModal(classItem)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-yellow-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-yellow-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Update Class Info"
                       >
                         <FileText size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteClass(classItem._id)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-red-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-red-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Delete Class"
                       >
                         <Trash2 size={16} />
@@ -462,16 +504,16 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         <div className={`rounded-lg overflow-hidden ${isDark ? 'bg-[#121A22]/50 border border-[#1E2733]' : 'bg-white border border-gray-200'}`}>
           <div className={`p-4 ${isDark ? 'bg-[#1E2733]' : 'bg-gray-50'}`}>
             <h3 className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Extra Classes
+              Extra Classes ({extraClasses.length})
             </h3>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-[#1E2733]">
             {extraClasses.map(classItem => (
-              <div key={classItem._id} className={`p-4 ${isDark ? 'hover:bg-[#1E2733]/50' : 'hover:bg-gray-50'}`}>
+              <div key={`extra-${classItem._id}`} className={`p-4 transition-colors ${isDark ? 'hover:bg-[#1E2733]/50' : 'hover:bg-gray-50'}`}>
                 <div className="flex justify-between items-start">
                   <div className="w-3/4">
                     <h4 className={`font-medium mb-1 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                      {classItem.title}
+                      {classItem.title || 'Untitled Extra Class'}
                     </h4>
                     <div className={`flex items-center gap-3 mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                       <span className="flex items-center gap-1">
@@ -492,22 +534,24 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleOpenScheduleModal(classItem)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-blue-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-blue-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Reschedule Class"
                       >
                         <RefreshCw size={16} />
                       </button>
                       <button
                         onClick={() => handleOpenLocationModal(classItem)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-green-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-green-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Update Location"
                       >
                         <MapPin size={16} />
@@ -516,22 +560,24 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleOpenInfoModal(classItem)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-yellow-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-yellow-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Update Class Info"
                       >
                         <FileText size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteClass(classItem._id)}
-                        className={`p-2 rounded-full flex items-center ${
+                        disabled={isLoading}
+                        className={`p-2 rounded-full flex items-center transition-colors ${
                           isDark 
                             ? 'bg-[#1E2733] text-red-400 hover:bg-[#283647]'
                             : 'bg-gray-100 text-red-600 hover:bg-gray-200'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title="Delete Class"
                       >
                         <Trash2 size={16} />
@@ -545,7 +591,7 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         </div>
       )}
 
-      {/* Class Scheduling Modal */}
+      {/* Modals */}
       {isScheduleModalOpen && (
         <ClassSchedulingModal
           isOpen={isScheduleModalOpen}
@@ -558,7 +604,6 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         />
       )}
 
-      {/* Location Update Modal */}
       {isLocationModalOpen && (
         <LocationUpdateModal 
           isOpen={isLocationModalOpen}
@@ -571,7 +616,6 @@ const ClassScheduler = ({ isDark, currentTheme, classroom }) => {
         />
       )}
 
-      {/* Class Info Update Modal */}
       {isInfoModalOpen && (
         <ClassInfoUpdateModal
           isOpen={isInfoModalOpen}

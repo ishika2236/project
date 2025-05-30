@@ -337,6 +337,7 @@ const updateGroup = async (req, res) => {
   try {
     const groupId = req.params.id;
     const updates = req.body;
+    console.log(updates);
     
     const group = await Group.findById(groupId);
     if (!group) {
@@ -378,11 +379,17 @@ const updateGroup = async (req, res) => {
       // Add new department courses
       group.courses = newDepartmentCourses.map(course => course._id);
     }
+    if (updates.mentorId && updates.mentorId !== group.mentor.toString()) {
+      const mentorExists = await User.findById(updates.mentorId);
+      if (!mentorExists) {
+        return res.status(400).json({ message: 'Mentor not found' });
+      }
+      group.mentor = updates.mentorId;
+    }
     
     // Apply the updates
     Object.keys(updates).forEach(key => {
-      // Skip the courses field as it's handled separately
-      if (key !== 'courses') {
+      if (key !== 'courses' && key !== 'mentor') {
         group[key] = updates[key];
       }
     });

@@ -9,11 +9,8 @@ import Sidebar from "./components/sidebar";
 
 // Student Components
 import StudentDashboard from './pages/student/StudentDashboard';
-import StudentCourses from './pages/student/StudentCourses';
-import StudentEnroll from './pages/student/StudentEnroll';
-import StudentCourseDetail from "./pages/student/StudentCourseDetails";
+
 import ClassMaterials from "./pages/student/ClassMaterials";
-import StudentDashboardOverview from "./components/student/StudentDashboardOverview";
 import StudentClassroomPortal from "./pages/student/StudentClassroomPortal";
 
 // Teacher Components
@@ -66,7 +63,6 @@ function App() {
         {/* <Route path="courses" element={<StudentCourses />} /> */}
         <Route path="classrooms" element= {<StudentClassroomPortal/>}></Route>
         <Route path="dashboard" element={<StudentCoursesPage />} />
-        <Route path="enroll" element={<StudentEnroll />} />
         <Route path="attendance" element={<StudentClassroomPortal/>} />
         
         {/* Class-specific routes for student */}

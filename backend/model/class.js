@@ -166,6 +166,132 @@ ClassSchema.virtual('students').get(async function() {
     return [];
   }
 });
+ClassSchema.post('findOneAndUpdate', async function(doc) {
+  // Check if the class status is updated to 'completed'
+  const update = this.getUpdate();
+  
+  if (update && update.$set && update.$set.status === 'completed') {
+    try {
+      // Get the Class model
+      const Class = mongoose.model('Class');
+      // Get the updated class document
+      const updatedClass = await Class.findById(doc._id);
+      
+      if (!updatedClass) {
+        console.error('Updated class not found');
+        return;
+      }
+      
+      // Get all students for this class
+      const students = await updatedClass.students;
+      
+      if (!students || students.length === 0) {
+        console.log('No students found for this class');
+        return;
+      }
+      
+      // Get the Attendance model
+      const Attendance = mongoose.model('Attendance');
+      
+      // Get existing attendance records for this class
+      const existingAttendance = await Attendance.find({ class: updatedClass._id });
+      
+      // Find students who don't have attendance records yet
+      const studentsWithAttendance = new Set(existingAttendance.map(a => a.student.toString()));
+      const absentStudents = students.filter(student => !studentsWithAttendance.has(student._id.toString()));
+      
+      // Create attendance records for absent students
+      if (absentStudents.length > 0) {
+        console.log(`Creating absent records for ${absentStudents.length} students`);
+        
+        const attendanceRecords = absentStudents.map(student => ({
+          class: updatedClass._id,
+          classroom: updatedClass.classroom,
+          student: student._id,
+          status: 'absent',
+          markedBy: 'system',
+          markedAt: new Date(),
+          notes: 'Automatically marked as absent after class completion'
+        }));
+        
+        // Save all attendance records
+        const savedRecords = await Attendance.insertMany(attendanceRecords);
+        
+        // Update the class with the new attendance records
+        updatedClass.attendanceRecords = [
+          ...updatedClass.attendanceRecords,
+          ...savedRecords.map(record => record._id)
+        ];
+        
+        await updatedClass.save();
+        
+        console.log(`Successfully created ${savedRecords.length} attendance records for absent students`);
+      } else {
+        console.log('All students already have attendance records');
+      }
+    } catch (error) {
+      console.error('Error generating automatic attendance records:', error);
+    }
+  }
+});
+
+// You can also add a method to manually trigger this process if needed
+ClassSchema.methods.generateAbsentRecords = async function() {
+  try {
+    // Get all students for this class
+    const students = await this.students;
+    
+    if (!students || students.length === 0) {
+      console.log('No students found for this class');
+      return [];
+    }
+    
+    // Get the Attendance model
+    const Attendance = mongoose.model('Attendance');
+    
+    // Get existing attendance records for this class
+    const existingAttendance = await Attendance.find({ class: this._id });
+    
+    // Find students who don't have attendance records yet
+    const studentsWithAttendance = new Set(existingAttendance.map(a => a.student.toString()));
+    const absentStudents = students.filter(student => !studentsWithAttendance.has(student._id.toString()));
+    
+    // Create attendance records for absent students
+    if (absentStudents.length > 0) {
+      console.log(`Creating absent records for ${absentStudents.length} students`);
+      
+      const attendanceRecords = absentStudents.map(student => ({
+        class: this._id,
+        classroom: this.classroom,
+        student: student._id,
+        status: 'absent',
+        markedBy: 'system',
+        markedAt: new Date(),
+        notes: 'Automatically marked as absent after class completion'
+      }));
+      
+      // Save all attendance records
+      const savedRecords = await Attendance.insertMany(attendanceRecords);
+      
+      // Update the class with the new attendance records
+      this.attendanceRecords = [
+        ...this.attendanceRecords,
+        ...savedRecords.map(record => record._id)
+      ];
+      
+      await this.save();
+      
+      console.log(`Successfully created ${savedRecords.length} attendance records for absent students`);
+      return savedRecords;
+    } else {
+      console.log('All students already have attendance records');
+      return [];
+    }
+  } catch (error) {
+    console.error('Error generating automatic attendance records:', error);
+    throw error;
+  }
+};
 
 // Methods to check for schedule conflicts
 ClassSchema.statics.checkForConflicts = async function (

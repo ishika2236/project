@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -32,23 +33,19 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
   const { user } = useSelector(state => state.auth);
   const location = useLocation();
   
-  // Define icon colors based on theme - bolder colors for light theme
-  const iconColor = isDark ? "#2F955A" : "#1C2833"; // Green for dark, darker blue-gray for light
+  // Define icon colors based on theme - matching the dashboard colors
+  const iconColor = isDark ? "#2F955A" : "#31B7AF"; // Dark green for dark theme, teal for light theme
+  const activeIconColor = isDark ? "#2F955A" : "#6D77D8"; // Dark green for dark, purple for light (matching the table header)
 
   const sideBarItems = {
     teacher: [
       { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} />, link: "/teacher/dashboard" },
       { id: "classroom", label: "Classroom", icon: <BookUser size={20} />, link: "/teacher/classroom" },
       { id: "groups", label: "Attendance Records", icon: <GroupIcon size={20} />, link: "/teacher/groups" },
-     
-           
     ],
     student: [
       { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} />, link: "/student/dashboard" },
-      // { id: "courses", label: "Courses", icon: <BookOpen size={20} />, link: "/student/courses" },
       { id: "attendance", label: "Attendance", icon: <ClipboardList size={20} />, link: "/student/attendance" },
-
-      // { id: "enroll", label: "Enroll Course", icon: <PlusCircle size={20} />, link: "/student/enroll" },
     ],
     admin: [
       { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} />, link: "/admin/dashboard" },
@@ -80,15 +77,15 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
     ? themeConfig.dark.secondaryText
     : themeConfig.light.secondaryText;
 
-  // Determine active item style based on theme - bolder for light theme
+  // Determine active item style based on theme - using the purple for active items in light theme
   const activeItemStyle = isDark
     ? 'bg-[#171D25] border-l-4 border-[#2F955A]'
-    : 'bg-[#BDC3C7]/50 border-l-4 border-[#1C2833]'; // More opaque background for bolder appearance
+    : 'bg-[#6D77D8]/10 border-l-4 border-[#6D77D8]'; // Purple highlight from the dashboard
 
-  // Choose the appropriate button style based on theme - solid for light theme
+  // Choose the appropriate button style based on theme
   const settingsButtonStyle = isDark 
     ? themeConfig.dark.button.green 
-    : themeConfig.light.button.lavender;
+    : 'bg-[#6D77D8] text-white hover:bg-[#5C66C7] transition-all duration-200';
 
   return (
     <div 
@@ -97,18 +94,19 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
         ${collapsed ? "w-20" : "w-64"} 
         flex flex-col min-h-full
         ${isDark ? themeConfig.dark.gradientBackground : 'bg-white'}
-        ${isDark ? 'border-r border-[#1E2733]' : 'border-r border-[#AAB7B8]'}
+        ${isDark ? 'border-r border-[#1E2733]' : 'border-r border-slate-200'}
+        ${!isDark && 'shadow-sm'}
       `}
     >
       {/* Sidebar Header */}
       <div className={`
         p-5 flex justify-between items-center 
-        ${isDark ? 'border-b border-[#1E2733]/50' : 'border-b border-[#AAB7B8]'}
+        ${isDark ? 'border-b border-[#1E2733]/50' : 'border-b border-slate-200'}
       `}>
         {!collapsed && (
           <div className={`
             font-bold text-xl
-            ${isDark ? themeConfig.dark.gradient.text : 'text-[#1C2833]'}
+            ${isDark ? themeConfig.dark.gradient.text : 'text-[#31B7AF]'}
           `}>
             Smart Attend
           </div>
@@ -117,14 +115,14 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
           onClick={() => setCollapsed(!collapsed)} 
           className={`
             p-2 rounded-full focus:outline-none 
-            ${isDark ? 'hover:bg-[#171D25]' : 'hover:bg-[#BDC3C7]/50'}
+            ${isDark ? 'hover:bg-[#171D25]' : 'hover:bg-[#F3F6FA]'}
             transition-all duration-200
             ${collapsed ? 'mx-auto' : 'ml-auto'}
           `}
         >
           {collapsed ? 
-            <ChevronRight size={20} color={iconColor} /> : 
-            <ChevronLeft size={20} color={iconColor} />
+            <ChevronRight size={20} color={isDark ? iconColor : "#6D77D8"} /> : 
+            <ChevronLeft size={20} color={isDark ? iconColor : "#6D77D8"} />
           }
         </button>
       </div>
@@ -145,23 +143,23 @@ const Sidebar = ({activeView, selectedCourse, selectedGroup, selectedClass, onNa
                       ${isActiveItem ? activeItemStyle : ''}
                       ${isDark 
                         ? 'hover:bg-[#171D25] hover:border-l-4 hover:border-[#2F955A]/50' 
-                        : 'hover:bg-[#BDC3C7]/40 hover:border-l-4 hover:border-[#1C2833]/80'
+                        : 'hover:bg-[#F3F6FA] hover:border-l-4 hover:border-[#31B7AF]/50'
                       }
                     `}
                   >
                     <div className={`
-                      ${isActiveItem ? (isDark ? 'text-[#2F955A]' : 'text-[#1C2833]') : (isDark ? 'text-white/70' : textColor)}
+                      ${isActiveItem ? (isDark ? 'text-[#2F955A]' : 'text-[#6D77D8]') : (isDark ? 'text-white/70' : 'text-slate-500')}
                     `}>
                       {React.cloneElement(item.icon, { 
-                        color: isActiveItem ? iconColor : (isDark ? '#FFFFFF99' : '#2E4053')
+                        color: isActiveItem ? (isDark ? iconColor : activeIconColor) : (isDark ? '#FFFFFF99' : '#64748B')
                       })}
                     </div>
                     {!collapsed && (
                       <span className={`
                         ml-3 font-medium text-sm truncate
                         ${isActiveItem 
-                          ? (isDark ? 'text-white' : 'text-[#1C2833] font-semibold') 
-                          : (isDark ? 'text-white/70' : secondaryTextColor)
+                          ? (isDark ? 'text-white' : 'text-[#6D77D8] font-semibold') 
+                          : (isDark ? 'text-white/70' : 'text-slate-500')
                         }
                       `}>
                         {item.label}

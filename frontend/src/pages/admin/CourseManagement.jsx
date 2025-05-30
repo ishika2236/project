@@ -84,6 +84,7 @@ export default function CourseManagement() {
       dispatch(fetchStudentCourses());
     }
   }, [dispatch, user.role]);
+  console.log(courses);
 
   useEffect(() => {
     const fetchInitialData = async () => {

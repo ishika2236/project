@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useTheme } from '../../context/ThemeProvider'
+// Fixed GroupsManagementPage.jsx
+import React, { useState, useEffect, useCallback } from 'react';
+import { useTheme } from '../../context/ThemeProvider';
 import GroupsList from '../../components/admin/groupManagement/GroupsList';
 import GroupDetails from '../../components/admin/groupManagement/GroupDetails';
 import GroupForm from '../../components/admin/groupManagement/GroupForm';
@@ -7,7 +8,7 @@ import GroupFilters from '../../components/admin/groupManagement/GroupFilters';
 import ToastContainer from '../../components/ToastContainer';
 import { Plus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchDepartments } from './../../app/features/departments/departmentThunks'
+import { fetchDepartments } from './../../app/features/departments/departmentThunks';
 import { fetchTeachers, fetchStudents } from '../../app/features/users/userThunks';
 import { 
   createGroup, 
@@ -66,16 +67,15 @@ const GroupsManagementPage = () => {
         dispatch(fetchStudents());
       }
       
-      if (Object.keys(allGroups).length === 0 && !groupsLoading) {
-        dispatch(fetchAllGroups());
-      }
+      // Always fetch groups data on component mount to ensure fresh data
+      dispatch(fetchAllGroups());
     };
     fetchInitialData();
-  }, [dispatch]);
+  }, [dispatch, departments.length, teachers.length, students.length, departmentsLoading, teachersLoading, studentsLoading]);
   
-  // Flatten groups separately after they're loaded
-  useEffect(() => {
-    if (!groupsLoading && Object.keys(allGroups).length > 0) {
+  // This function flattens the groups - moved outside useEffect to avoid creating it on every render
+  const flattenGroups = useCallback(() => {
+    if (Object.keys(allGroups).length > 0) {
       const flattened = [];
       Object.keys(allGroups).forEach(departmentId => {
         if (Array.isArray(allGroups[departmentId])) {
@@ -83,7 +83,6 @@ const GroupsManagementPage = () => {
             flattened.push({
               ...group,
               departmentId,
-              // Add additional fields needed for the UI
               mentorName: group.mentor?.firstName && group.mentor?.lastName 
                 ? `${group.mentor.firstName} ${group.mentor.lastName}` 
                 : 'Unassigned',
@@ -92,9 +91,26 @@ const GroupsManagementPage = () => {
           });
         }
       });
-      setFlattenedGroups(flattened);
+      return flattened;
     }
-  }, [allGroups, groupsLoading]);
+    return [];
+  }, [allGroups]);
+  
+  // Update flattened groups when allGroups changes
+  useEffect(() => {
+    const flattened = flattenGroups();
+    setFlattenedGroups(flattened);
+  }, [flattenGroups]);
+  
+  // Separate effect to update selected group when needed
+  useEffect(() => {
+    if (selectedGroup && flattenedGroups.length > 0) {
+      const updatedSelectedGroup = flattenedGroups.find(g => g._id === selectedGroup._id);
+      if (updatedSelectedGroup && JSON.stringify(updatedSelectedGroup) !== JSON.stringify(selectedGroup)) {
+        setSelectedGroup(updatedSelectedGroup);
+      }
+    }
+  }, [flattenedGroups, selectedGroup]);
   
   const handleCreateGroup = () => {
     setSelectedGroup(null);
@@ -116,19 +132,23 @@ const GroupsManagementPage = () => {
 
   const handleDeleteGroup = async (groupId) => {
     try {
-      // console.log(groupId)
       const result = await dispatch(deleteGroup(groupId));
       if (result.meta.requestStatus === 'fulfilled') {
-        // Filter the group out of the flattened list
-        const updatedGroups = flattenedGroups.filter(group => group._id !== groupId);
-        setFlattenedGroups(updatedGroups);
-        
+        // Clear selected group if it was deleted
         if (selectedGroup && selectedGroup._id === groupId) {
           setSelectedGroup(null);
+        }
+        
+        // Toast notification
+        if (window.toastManager) {
+          window.toastManager.success('Group deleted successfully');
         }
       }
     } catch (error) {
       console.error('Error deleting group:', error);
+      if (window.toastManager) {
+        window.toastManager.error('Failed to delete group');
+      }
     }
   };
 
@@ -139,8 +159,25 @@ const GroupsManagementPage = () => {
         const result = await dispatch(createGroup(groupData));
         if (result.meta.requestStatus === 'fulfilled') {
           setIsCreating(false);
-          // Refresh groups to get the latest data
-          dispatch(fetchAllGroups());
+          
+          // Toast notification
+          if (window.toastManager) {
+            window.toastManager.success('Group created successfully');
+          }
+          
+          // Optionally select the newly created group
+          if (result.payload && result.payload.group) {
+            // Need to manually enrich the group with UI properties
+            const newGroup = {
+              ...result.payload.group,
+              departmentId: result.payload.group.department._id,
+              mentorName: result.payload.group.mentor?.firstName && result.payload.group.mentor?.lastName 
+                ? `${result.payload.group.mentor.firstName} ${result.payload.group.mentor.lastName}` 
+                : 'Unassigned',
+              studentCount: result.payload.group.students?.length || 0
+            };
+            setSelectedGroup(newGroup);
+          }
         }
       } else if (isEditing && selectedGroup) {
         // Update existing group
@@ -151,12 +188,18 @@ const GroupsManagementPage = () => {
         
         if (result.meta.requestStatus === 'fulfilled') {
           setIsEditing(false);
-          // Refresh groups to get the latest data
-          dispatch(fetchAllGroups());
+          
+          // Toast notification
+          if (window.toastManager) {
+            window.toastManager.success('Group updated successfully');
+          }
         }
       }
     } catch (error) {
       console.error('Error saving group:', error);
+      if (window.toastManager) {
+        window.toastManager.error('Failed to save group');
+      }
     }
   };
 
@@ -168,7 +211,6 @@ const GroupsManagementPage = () => {
 
     setAddingStudents(true);
     try {
-      // Dispatch the action to add students to the group
       const result = await dispatch(assignStudentToGroup({ 
         groupId, 
         studentIds
@@ -185,13 +227,9 @@ const GroupsManagementPage = () => {
             `${count} ${count === 1 ? 'student' : 'students'} added to ${groupName}`
           );
         }
-        
-        // Refresh groups to get the latest data
-        dispatch(fetchAllGroups());
       }
     } catch (error) {
       console.error('Error adding students to group:', error);
-      // Show error toast notification
       if (window.toastManager) {
         window.toastManager.error('Failed to add students to group');
       }
@@ -208,7 +246,6 @@ const GroupsManagementPage = () => {
 
     setRemovingStudent(true);
     try {
-      // Dispatch the action to remove student from the group
       const result = await dispatch(removeStudentFromGroup({ 
         groupId, 
         studentId
@@ -224,25 +261,9 @@ const GroupsManagementPage = () => {
           
           window.toastManager.success(`${studentName} was removed from ${groupName}`);
         }
-        
-        // Refresh groups to get the latest data
-        dispatch(fetchAllGroups());
-        
-        // Update the selected group if it's currently selected
-        if (selectedGroup && selectedGroup._id === groupId) {
-          const updatedGroup = flattenedGroups.find(g => g._id === groupId);
-          if (updatedGroup) {
-            // Update the selected group with the student removed
-            setSelectedGroup({
-              ...updatedGroup,
-              students: updatedGroup.students.filter(s => s._id !== studentId)
-            });
-          }
-        }
       }
     } catch (error) {
       console.error('Error removing student from group:', error);
-      // Show error toast notification
       if (window.toastManager) {
         window.toastManager.error('Failed to remove student from group');
       }
@@ -256,7 +277,7 @@ const GroupsManagementPage = () => {
     setIsEditing(false);
   };
 
-  const filterGroups = () => {
+  const filterGroups = useCallback(() => {
     let filtered = [...flattenedGroups];
     
     // Filter by department
@@ -284,17 +305,32 @@ const GroupsManagementPage = () => {
     }
     
     return filtered;
-  };
+  }, [flattenedGroups, selectedDepartment, searchQuery, filterBy]);
+
+  // Get filtered groups without re-computing on every render
+  const filteredGroups = filterGroups();
 
   return (
-    <div className={`${colors.background} min-h-screen p-6`}>
+    <div className={colors.background + " min-h-screen p-6"}>
       {/* Toast Container for notifications */}
-      <ToastContainer />
       
-      <div className={`${colors.gradientBackground} rounded-lg shadow-lg p-6`}>
+      
+      <div className={colors.gradientBackground + " rounded-lg shadow-lg p-6"}>
         <h1 className={`text-2xl font-bold mb-6 ${colors.text}`}>
           Groups Management
         </h1>
+        <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        style={{ marginTop: '100px', zIndex: 999999 }} 
+      />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column: Filters and Groups List */}
@@ -313,7 +349,7 @@ const GroupsManagementPage = () => {
               <h2 className={`text-lg font-semibold ${colors.text}`}>Groups</h2>
               <button
                 onClick={handleCreateGroup}
-                className={`${colors.button.primary} px-3 py-2 rounded-md flex items-center`}
+                className={colors.button.primary + " px-3 py-2 rounded-md flex items-center"}
               >
                 <Plus size={16} className="mr-1" />
                 <span>Create Group</span>
@@ -321,10 +357,11 @@ const GroupsManagementPage = () => {
             </div>
             
             <GroupsList 
-              groups={filterGroups()}
+              groups={filteredGroups}
               onEdit={handleEditGroup}
               onView={handleViewGroup}
               onDelete={handleDeleteGroup}
+              loading={groupsLoading}
             />
           </div>
           
@@ -350,8 +387,8 @@ const GroupsManagementPage = () => {
                 isRemovingStudent={removingStudent}
               />
             ) : (
-              <div className={`${colors.card} rounded-lg p-8 flex flex-col items-center justify-center h-full`}>
-                <p className={`${colors.secondaryText} text-center`}>
+              <div className={colors.card + " rounded-lg p-8 flex flex-col items-center justify-center h-full"}>
+                <p className={colors.secondaryText + " text-center"}>
                   Select a group to view details or create a new group
                 </p>
               </div>

@@ -19,7 +19,7 @@ const getAllDepartments = async () => {
 };
 
 const getDepartmentById = async (id) => {
-  const response = await axios.get(`${API_URL}/${id}`);
+  const response = await axiosInstance.get(`${API_URL}/${id}`);
   return response.data;
 };
 
@@ -32,12 +32,12 @@ const updateDepartment = async (id, departmentData) => {
 };
 
 const deleteDepartment = async (id) => {
-  const response = await axios.delete(`${API_URL}/${id}`);
+  const response = await axiosInstance.delete(`${API_URL}/${id}`);
   return response.data;
 };
 
 const assignDepartmentHead = async (departmentId, userId) => {
-  const response = await axios.post(
+  const response = await axiosInstance.post(
     `${API_URL}/${departmentId}/assign-head`,
     { userId }
   );

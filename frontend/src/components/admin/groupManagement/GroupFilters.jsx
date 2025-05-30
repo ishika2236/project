@@ -24,12 +24,15 @@ const GroupFilters = ({
     }
   };
 
-  const getSelectBgClass = () => {
-    return theme === 'dark' ? 'bg-neutral-900' : 'bg-white';
+  // Get active button style by combining the primary button style
+  const getFilterButtonStyle = (isActive) => {
+    return isActive 
+      ? colors.button.primary  // Use primary button style for active state
+      : colors.button.secondary; // Use secondary button style for inactive state
   };
 
   return (
-    <div className={`${colors.card} rounded-lg p-4 mb-6`}>
+    <div className={`${colors.card} p-4 mb-6`}>
       <div className="mb-4 relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search size={16} className={colors.secondaryText} />
@@ -37,7 +40,7 @@ const GroupFilters = ({
         <input
           type="text"
           placeholder="Search groups..."
-          className={`pl-10 w-full p-2 ${colors.input} rounded-md`}
+          className={`pl-10 w-full p-2 ${colors.input}`}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -48,7 +51,7 @@ const GroupFilters = ({
           Department
         </label>
         <select
-          className={`w-full p-2 border rounded-md ${getSelectBgClass()} ${colors.text} border-gray-600`}
+          className={`w-full p-2 ${colors.select}`}
           value={selectedDepartment ? selectedDepartment._id : ""}
           onChange={handleDepartmentChange}
         >
@@ -67,27 +70,21 @@ const GroupFilters = ({
         </label>
         <div className="flex space-x-2">
           <button
-            className={`px-3 py-1 rounded-md flex items-center ${
-              filterBy === 'all' ? colors.button.selected : colors.button.secondary
-            }`}
+            className={`px-3 py-1 rounded-md flex items-center ${getFilterButtonStyle(filterBy === 'all')}`}
             onClick={() => setFilterBy('all')}
           >
             <Filter size={14} className="mr-1" />
             All
           </button>
           <button
-            className={`px-3 py-1 rounded-md flex items-center ${
-              filterBy === 'small' ? colors.button.selected : colors.button.secondary
-            }`}
+            className={`px-3 py-1 rounded-md flex items-center ${getFilterButtonStyle(filterBy === 'small')}`}
             onClick={() => setFilterBy('small')}
           >
             <Filter size={14} className="mr-1" />
             Small (&lt;15)
           </button>
           <button
-            className={`px-3 py-1 rounded-md flex items-center ${
-              filterBy === 'large' ? colors.button.selected : colors.button.secondary
-            }`}
+            className={`px-3 py-1 rounded-md flex items-center ${getFilterButtonStyle(filterBy === 'large')}`}
             onClick={() => setFilterBy('large')}
           >
             <Filter size={14} className="mr-1" />

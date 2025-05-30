@@ -1,4 +1,4 @@
-// groupSlice.js
+// Enhanced groupSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 import {
   createGroup,
@@ -25,7 +25,12 @@ const groupSlice = createSlice({
       userGroups: null,
     }
   },
-  reducers: {},
+  reducers: {
+    // Add any additional reducers if needed
+    clearGroupErrors: (state) => {
+      state.error = null;
+    }
+  },
   extraReducers: builder => {
     builder
       // Fetch groups (based on user role)
@@ -38,7 +43,6 @@ const groupSlice = createSlice({
         const groupsByDepartment = {};
         
         action.payload.forEach(group => {
-          
           const departmentId = group.department._id;
           if (!groupsByDepartment[departmentId]) {
             groupsByDepartment[departmentId] = [];
@@ -63,7 +67,7 @@ const groupSlice = createSlice({
       .addCase(fetchAllGroups.fulfilled, (state, action) => {
         // Organize groups by department
         const groupsByDepartment = {};
-        // console.log(action.payload)
+        
         action.payload.forEach(group => {
           const departmentId = group.department._id;
           if (!groupsByDepartment[departmentId]) {
@@ -112,8 +116,6 @@ const groupSlice = createSlice({
       })
       .addCase(createGroup.fulfilled, (state, action) => {
         const group = action.payload.group;
-        console.log(group);
-
         const departmentId = group.department._id;
         
         // Initialize the department array if it doesn't exist
@@ -123,6 +125,12 @@ const groupSlice = createSlice({
         
         // Add to admin's allGroups
         state.allGroups[departmentId].push(group);
+        
+        // Also add to userGroups if appropriate
+        if (state.userGroups[departmentId]) {
+          state.userGroups[departmentId].push(group);
+        }
+        
         state.loading = false;
       })
       .addCase(createGroup.rejected, (state, action) => {
@@ -142,24 +150,44 @@ const groupSlice = createSlice({
         Object.keys(state.allGroups).forEach(departmentId => {
           const groupIndex = state.allGroups[departmentId]?.findIndex(g => g._id === groupId);
           if (groupIndex !== -1 && groupIndex !== undefined) {
-            // Update student list with new students
+            // Create a new students array with both existing and new students
+            const existingStudents = state.allGroups[departmentId][groupIndex].students || [];
+            const updatedStudents = [...existingStudents];
+            
+            // Add new students if they don't already exist
             students.forEach(student => {
-              if (!state.allGroups[departmentId][groupIndex].students.some(s => s._id === student._id)) {
-                state.allGroups[departmentId][groupIndex].students.push(student);
+              if (!updatedStudents.some(s => s._id === student._id)) {
+                updatedStudents.push(student);
               }
             });
+            
+            // Update the students array immutably
+            state.allGroups[departmentId][groupIndex] = {
+              ...state.allGroups[departmentId][groupIndex],
+              students: updatedStudents
+            };
           }
         });
         
         Object.keys(state.userGroups).forEach(departmentId => {
           const groupIndex = state.userGroups[departmentId]?.findIndex(g => g._id === groupId);
           if (groupIndex !== -1 && groupIndex !== undefined) {
-            // Update student list with new students
+            // Create a new students array with both existing and new students
+            const existingStudents = state.userGroups[departmentId][groupIndex].students || [];
+            const updatedStudents = [...existingStudents];
+            
+            // Add new students if they don't already exist
             students.forEach(student => {
-              if (!state.userGroups[departmentId][groupIndex].students.some(s => s._id === student._id)) {
-                state.userGroups[departmentId][groupIndex].students.push(student);
+              if (!updatedStudents.some(s => s._id === student._id)) {
+                updatedStudents.push(student);
               }
             });
+            
+            // Update the students array immutably
+            state.userGroups[departmentId][groupIndex] = {
+              ...state.userGroups[departmentId][groupIndex],
+              students: updatedStudents
+            };
           }
         });
         
@@ -182,16 +210,32 @@ const groupSlice = createSlice({
         Object.keys(state.allGroups).forEach(departmentId => {
           const groupIndex = state.allGroups[departmentId]?.findIndex(g => g._id === groupId);
           if (groupIndex !== -1 && groupIndex !== undefined) {
-            state.allGroups[departmentId][groupIndex].students = 
-              state.allGroups[departmentId][groupIndex].students.filter(s => s._id !== studentId);
+            // Create a new students array without the removed student
+            const updatedStudents = state.allGroups[departmentId][groupIndex].students.filter(
+              s => s._id !== studentId
+            );
+            
+            // Update the students array immutably
+            state.allGroups[departmentId][groupIndex] = {
+              ...state.allGroups[departmentId][groupIndex],
+              students: updatedStudents
+            };
           }
         });
         
         Object.keys(state.userGroups).forEach(departmentId => {
           const groupIndex = state.userGroups[departmentId]?.findIndex(g => g._id === groupId);
           if (groupIndex !== -1 && groupIndex !== undefined) {
-            state.userGroups[departmentId][groupIndex].students = 
-              state.userGroups[departmentId][groupIndex].students.filter(s => s._id !== studentId);
+            // Create a new students array without the removed student
+            const updatedStudents = state.userGroups[departmentId][groupIndex].students.filter(
+              s => s._id !== studentId
+            );
+            
+            // Update the students array immutably
+            state.userGroups[departmentId][groupIndex] = {
+              ...state.userGroups[departmentId][groupIndex],
+              students: updatedStudents
+            };
           }
         });
         
@@ -214,14 +258,22 @@ const groupSlice = createSlice({
         Object.keys(state.allGroups).forEach(departmentId => {
           const groupIndex = state.allGroups[departmentId]?.findIndex(g => g._id === groupId);
           if (groupIndex !== -1 && groupIndex !== undefined) {
-            state.allGroups[departmentId][groupIndex].mentor = teacher;
+            // Update the mentor immutably
+            state.allGroups[departmentId][groupIndex] = {
+              ...state.allGroups[departmentId][groupIndex],
+              mentor: teacher
+            };
           }
         });
         
         Object.keys(state.userGroups).forEach(departmentId => {
           const groupIndex = state.userGroups[departmentId]?.findIndex(g => g._id === groupId);
           if (groupIndex !== -1 && groupIndex !== undefined) {
-            state.userGroups[departmentId][groupIndex].mentor = teacher;
+            // Update the mentor immutably
+            state.userGroups[departmentId][groupIndex] = {
+              ...state.userGroups[departmentId][groupIndex],
+              mentor: teacher
+            };
           }
         });
         
@@ -243,37 +295,55 @@ const groupSlice = createSlice({
         
         // Update in allGroups
         Object.keys(state.allGroups).forEach(deptId => {
-          const groupIndex = state.allGroups[deptId]?.findIndex(g => g._id === updatedGroup._id);
-          if (groupIndex !== -1 && groupIndex !== undefined) {
-            // If department has changed, remove from old department
-            if (deptId !== departmentId) {
-              state.allGroups[deptId] = state.allGroups[deptId].filter(g => g._id !== updatedGroup._id);
-            } else {
-              // Update in existing department
+          if (deptId === departmentId) {
+            // Handle updating in the correct department
+            const groupIndex = state.allGroups[deptId]?.findIndex(g => g._id === updatedGroup._id);
+            if (groupIndex !== -1 && groupIndex !== undefined) {
+              // Update the group immutably
               state.allGroups[deptId][groupIndex] = updatedGroup;
+            } else {
+              // Group not found in this department, add it
+              if (!state.allGroups[deptId]) {
+                state.allGroups[deptId] = [];
+              }
+              state.allGroups[deptId].push(updatedGroup);
             }
+          } else {
+            // Remove from old department if it exists
+            state.allGroups[deptId] = state.allGroups[deptId]?.filter(g => g._id !== updatedGroup._id) || [];
           }
         });
         
-        // Add to new department if needed
+        // Initialize new department if needed
         if (!state.allGroups[departmentId]) {
-          state.allGroups[departmentId] = [];
-        }
-        if (!state.allGroups[departmentId].some(g => g._id === updatedGroup._id)) {
-          state.allGroups[departmentId].push(updatedGroup);
+          state.allGroups[departmentId] = [updatedGroup];
         }
         
         // Update in userGroups similarly
         Object.keys(state.userGroups).forEach(deptId => {
-          const groupIndex = state.userGroups[deptId]?.findIndex(g => g._id === updatedGroup._id);
-          if (groupIndex !== -1 && groupIndex !== undefined) {
-            if (deptId !== departmentId) {
-              state.userGroups[deptId] = state.userGroups[deptId].filter(g => g._id !== updatedGroup._id);
-            } else {
+          if (deptId === departmentId) {
+            // Handle updating in the correct department
+            const groupIndex = state.userGroups[deptId]?.findIndex(g => g._id === updatedGroup._id);
+            if (groupIndex !== -1 && groupIndex !== undefined) {
+              // Update the group immutably
               state.userGroups[deptId][groupIndex] = updatedGroup;
+            } else {
+              // Group not found in this department, add it
+              if (!state.userGroups[deptId]) {
+                state.userGroups[deptId] = [];
+              }
+              state.userGroups[deptId].push(updatedGroup);
             }
+          } else {
+            // Remove from old department if it exists
+            state.userGroups[deptId] = state.userGroups[deptId]?.filter(g => g._id !== updatedGroup._id) || [];
           }
         });
+        
+        // Initialize new department if needed
+        if (!state.userGroups[departmentId]) {
+          state.userGroups[departmentId] = [updatedGroup];
+        }
         
         state.loading = false;
       })
@@ -292,11 +362,15 @@ const groupSlice = createSlice({
         
         // Remove from allGroups and userGroups
         Object.keys(state.allGroups).forEach(departmentId => {
-          state.allGroups[departmentId] = state.allGroups[departmentId]?.filter(g => g._id !== groupId);
+          if (state.allGroups[departmentId]) {
+            state.allGroups[departmentId] = state.allGroups[departmentId].filter(g => g._id !== groupId);
+          }
         });
         
         Object.keys(state.userGroups).forEach(departmentId => {
-          state.userGroups[departmentId] = state.userGroups[departmentId]?.filter(g => g._id !== groupId);
+          if (state.userGroups[departmentId]) {
+            state.userGroups[departmentId] = state.userGroups[departmentId].filter(g => g._id !== groupId);
+          }
         });
         
         state.loading = false;
@@ -308,4 +382,6 @@ const groupSlice = createSlice({
   },
 });
 
+// Export the reducer and any action creators
+export const { clearGroupErrors } = groupSlice.actions;
 export default groupSlice.reducer;

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { ChevronDown, ChevronUp, Edit, BookOpen, Users, Trash2 } from 'lucide-react';
 import { getDepartmentById, deleteDepartment } from '../../../app/features/departments/departmentThunks';
 import DepartmentDetails from './DepartmentDetails';
+import { toast } from 'react-hot-toast';
 // import DeleteConfirmationModal from '../common/DeleteConfirmationModal';
 
 const DepartmentList = ({ 
@@ -10,21 +11,31 @@ const DepartmentList = ({
   onEditDepartment, 
   currentTheme, 
   theme, 
-  groupCounts, // Add this prop
-  courseCounts, // Add this prop
-  allGroups,    // Add this prop
-  courses       // Add this prop
+  groupCounts, 
+  courseCounts, 
+  allGroups,    
+  courses       
 }) => {
   const dispatch = useDispatch();
   const [expandedDept, setExpandedDept] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+  
+  // Get the selected department from Redux store
+  const selectedDepartment = useSelector(state => state.departments.selectedDepartment);
   
   const toggleDeptExpansion = (deptId) => {
     if (expandedDept === deptId) {
       setExpandedDept(null);
     } else {
       setExpandedDept(deptId);
-      dispatch(getDepartmentById(deptId));
+      dispatch(getDepartmentById(deptId))
+        .unwrap()
+        .then(() => {
+          toast.success('Department details loaded successfully');
+        })
+        .catch((error) => {
+          toast.error(`Failed to load department: ${error.message || 'Unknown error'}`);
+        });
     }
   };
   
@@ -34,8 +45,15 @@ const DepartmentList = ({
   
   const confirmDelete = () => {
     if (deleteConfirmation) {
-      dispatch(deleteDepartment(deleteConfirmation._id));
-      setDeleteConfirmation(null);
+      dispatch(deleteDepartment(deleteConfirmation._id))
+        .unwrap()
+        .then(() => {
+          toast.success(`Department "${deleteConfirmation.name}" deleted successfully`);
+          setDeleteConfirmation(null);
+        })
+        .catch((error) => {
+          toast.error(`Failed to delete department: ${error.message || 'Unknown error'}`);
+        });
     }
   };
 
@@ -104,7 +122,8 @@ const DepartmentList = ({
           {/* Expanded Details */}
           {expandedDept === dept._id && (
             <DepartmentDetails 
-              departmentId={dept._id} 
+              departmentId={dept._id}
+              departmentData={selectedDepartment} // Pass the selected department from Redux store
               theme={theme} 
               currentTheme={currentTheme}
               departmentCourses={courses.filter(course => 
@@ -116,7 +135,31 @@ const DepartmentList = ({
         </div>
       ))}
       
-      {/* Delete Confirmation Modal commented out in the original */}
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className={`${currentTheme.card} p-6 rounded-lg max-w-md w-full`}>
+            <h3 className={`${currentTheme.text} text-lg font-semibold mb-2`}>Delete Department</h3>
+            <p className={currentTheme.secondaryText}>
+              Are you sure you want to delete "{deleteConfirmation.name}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                className={`px-4 py-2 rounded ${theme === 'dark' ? 'bg-[#1E2733] hover:bg-[#2D3B4A] text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                onClick={() => setDeleteConfirmation(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
+                onClick={confirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

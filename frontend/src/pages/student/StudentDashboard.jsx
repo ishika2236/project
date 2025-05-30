@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/sidebar';
 import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeProvider';
-import StudentDashboardOverview from '../../components/student/StudentDashboardOverview';
-import StudentCourseDetail from './StudentCourseDetails';
+
 import Navbar from './../../components/navbar'
 const StudentDashboard = () => {
   const { themeConfig, theme } = useTheme();
