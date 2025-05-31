@@ -36,7 +36,7 @@ const calculateCosineSimilarity = (embedding1, embedding2) => {
 // Function to verify face embedding - moved from simplified approach to actual face recognition
 const verifyFaceEmbedding = async (faceEmbeddingData, studentId) => {
   // Configure threshold as needed for your application
-  const SIMILARITY_THRESHOLD = 0.90;
+  const SIMILARITY_THRESHOLD = 0.80;
   
   try {
     // Parse the embedding if it's a string

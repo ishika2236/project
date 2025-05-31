@@ -26,6 +26,7 @@ import { getClassroomsByTeacher } from '../../app/features/classroom/classroomTh
 const StudentDetailsModal = lazy(() => import('../../components/teacher/modals/StudentDetailsModal'));
 const LowAttendanceAlert = lazy(() => import('../../components/teacher/modals/LowAttendanceAlert'));
 const LateStudentsPanel = lazy(() => import('../../components/teacher/modals/LateStudentsPanel'));
+import { useTheme } from '../../context/ThemeProvider';
 
 // AttendanceProcessor class (you can import this from your separate file)
 class AttendanceProcessor {
@@ -54,7 +55,7 @@ class AttendanceProcessor {
 
   isStudentLate(record) {
     const markedTime = new Date(record.markedAt);
-    const classStartTime = new Date(record.class.schedule?.startTime || record.markedAt);
+    const classStartTime = new Date(record.class?.schedule?.startTime || record.markedAt);
     return markedTime > classStartTime;
   }
 
@@ -244,83 +245,173 @@ const LoadingSpinner = () => (
 // Expandable section component
 const ExpandableSection = ({ title, children, defaultExpanded = false, icon }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const { themeConfig, theme } = useTheme();
+  const config = themeConfig[theme];
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-4">
+    <div className={`${config.card} mb-4`}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        className={`w-full px-6 py-4 flex items-center justify-between text-left 
+          ${theme === 'dark' 
+            ? 'hover:bg-[#1A1D25]/50' 
+            : 'hover:bg-slate-50'
+          } 
+          transition-all duration-300 ease-in-out rounded-t-lg`}
       >
         <div className="flex items-center space-x-3">
-          {icon}
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <div className={config.icon}>
+            {icon}
+          </div>
+          <h3 className={`text-lg font-semibold ${config.text}`}>
+            {title}
+          </h3>
         </div>
-        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        <div className={`${config.secondaryText} transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </div>
       </button>
       {isExpanded && (
-        <div className="px-6 pb-6 border-t border-gray-200 dark:border-gray-700">
-          {children}
+        <div className={`px-6 pb-6 border-t ${
+          theme === 'dark' 
+            ? 'border-[#2E3441]' 
+            : 'border-slate-200'
+        }`}>
+          <div className="pt-4">
+            {children}
+          </div>
         </div>
       )}
     </div>
   );
 };
 
+
 // Student Details Modal Component
 const StudentModal = ({ student, onClose }) => {
+  const { themeConfig, theme } = useTheme();
+  const config = themeConfig[theme];
+  
   if (!student) return null;
 
+  const getStatusBadgeStyle = (status) => {
+    if (theme === 'dark') {
+      return status === 'present' 
+        ? 'bg-[#2F955A]/20 text-[#2F955A] border border-[#2F955A]/30'
+        : 'bg-[#F2683C]/20 text-[#F2683C] border border-[#F2683C]/30';
+    } else {
+      return status === 'present'
+        ? 'bg-[#31B7AF]/10 text-[#31B7AF] border border-[#31B7AF]/20'
+        : 'bg-[#FF5A5A]/10 text-[#FF5A5A] border border-[#FF5A5A]/20';
+    }
+  };
+
+  const getLateBadgeStyle = (isLate) => {
+    if (theme === 'dark') {
+      return isLate
+        ? 'bg-[#F2683C]/20 text-[#F2683C] border border-[#F2683C]/30'
+        : 'bg-[#5E6E82]/20 text-[#5E6E82] border border-[#5E6E82]/30';
+    } else {
+      return isLate
+        ? 'bg-[#FF9F5A]/10 text-[#FF9F5A] border border-[#FF9F5A]/20'
+        : 'bg-slate-100 text-slate-500 border border-slate-200';
+    }
+  };
+
+  const getSummaryCardStyle = (type) => {
+    if (theme === 'dark') {
+      const styles = {
+        total: 'bg-[#506EE5]/20 border border-[#506EE5]/30',
+        present: 'bg-[#2F955A]/20 border border-[#2F955A]/30',
+        absent: 'bg-[#F2683C]/20 border border-[#F2683C]/30',
+        late: 'bg-[#F2683C]/20 border border-[#F2683C]/30'
+      };
+      return styles[type];
+    } else {
+      const styles = {
+        total: 'bg-[#4E8CEC]/10 border border-[#4E8CEC]/20',
+        present: 'bg-[#31B7AF]/10 border border-[#31B7AF]/20',
+        absent: 'bg-[#FF5A5A]/10 border border-[#FF5A5A]/20',
+        late: 'bg-[#FF9F5A]/10 border border-[#FF9F5A]/20'
+      };
+      return styles[type];
+    }
+  };
+
+  const getProgressBarColor = (percentage) => {
+    if (theme === 'dark') {
+      return percentage >= 90 ? 'bg-[#2F955A]' :
+             percentage >= 75 ? 'bg-[#F2683C]' : 'bg-[#F2683C]';
+    } else {
+      return percentage >= 90 ? 'bg-[#31B7AF]' :
+             percentage >= 75 ? 'bg-[#FF9F5A]' : 'bg-[#FF5A5A]';
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className={`${config.card} rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto`}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className={`text-2xl font-bold ${config.text}`}>
             Student Details: {student.studentName}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className={`p-2 ${theme === 'dark' ? 'hover:bg-[#1A1D25]/50' : 'hover:bg-slate-100'} rounded-full transition-colors`}
           >
-            <X size={20} className="text-gray-600 dark:text-gray-400" />
+            <X size={20} className={config.secondaryText} />
           </button>
         </div>
 
         {/* Student Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Classes</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{student.totalClasses}</p>
+          <div className={`${getSummaryCardStyle('total')} rounded-lg p-4`}>
+            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-[#506EE5]' : 'text-[#4E8CEC]'}`}>
+              Total Classes
+            </p>
+            <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-[#506EE5]' : 'text-[#4E8CEC]'}`}>
+              {student.totalClasses}
+            </p>
           </div>
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-            <p className="text-sm font-medium text-green-600 dark:text-green-400">Present</p>
-            <p className="text-2xl font-bold text-green-700 dark:text-green-300">{student.presentClasses}</p>
+          <div className={`${getSummaryCardStyle('present')} rounded-lg p-4`}>
+            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-[#2F955A]' : 'text-[#31B7AF]'}`}>
+              Present
+            </p>
+            <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-[#2F955A]' : 'text-[#31B7AF]'}`}>
+              {student.presentClasses}
+            </p>
           </div>
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-            <p className="text-sm font-medium text-red-600 dark:text-red-400">Absent</p>
-            <p className="text-2xl font-bold text-red-700 dark:text-red-300">{student.absentClasses}</p>
+          <div className={`${getSummaryCardStyle('absent')} rounded-lg p-4`}>
+            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-[#F2683C]' : 'text-[#FF5A5A]'}`}>
+              Absent
+            </p>
+            <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-[#F2683C]' : 'text-[#FF5A5A]'}`}>
+              {student.absentClasses}
+            </p>
           </div>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-            <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Late</p>
-            <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{student.lateClasses}</p>
+          <div className={`${getSummaryCardStyle('late')} rounded-lg p-4`}>
+            <p className={`text-sm font-medium ${theme === 'dark' ? 'text-[#F2683C]' : 'text-[#FF9F5A]'}`}>
+              Late
+            </p>
+            <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-[#F2683C]' : 'text-[#FF9F5A]'}`}>
+              {student.lateClasses}
+            </p>
           </div>
         </div>
 
         {/* Attendance Percentage */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className={`text-sm font-medium ${config.secondaryText}`}>
               Attendance Percentage
             </span>
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
+            <span className={`text-sm font-medium ${config.text}`}>
               {student.attendancePercentage}%
             </span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+          <div className={`w-full ${theme === 'dark' ? 'bg-[#2E3441]' : 'bg-slate-200'} rounded-full h-3`}>
             <div 
-              className={`h-3 rounded-full transition-all duration-500 ${
-                student.attendancePercentage >= 90 ? 'bg-green-600' :
-                student.attendancePercentage >= 75 ? 'bg-yellow-400' : 'bg-red-600'
-              }`}
+              className={`h-3 rounded-full transition-all duration-500 ${getProgressBarColor(student.attendancePercentage)}`}
               style={{ width: `${student.attendancePercentage}%` }}
             ></div>
           </div>
@@ -328,61 +419,51 @@ const StudentModal = ({ student, onClose }) => {
 
         {/* Recent Attendance Records */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className={`text-lg font-semibold ${config.text} mb-4`}>
             Recent Attendance Records
           </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
+              <thead className={config.table.header}>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Time
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Class
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Late
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className={`${config.background} divide-y ${theme === 'dark' ? 'divide-[#2E3441]' : 'divide-slate-200'}`}>
                 {student.records?.slice(0, 10).map((record, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <tr key={index} className={config.table.row}>
+                    <td className={`${config.table.cell} whitespace-nowrap text-sm ${config.text}`}>
                       {record.classDate}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className={`${config.table.cell} whitespace-nowrap text-sm ${config.text}`}>
                       {record.classTime}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {record.className}
+                    <td className={`${config.table.cell} whitespace-nowrap text-sm ${config.text}`}>
+                      {record.class?.title || 'Untitled Class'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        record.status === 'present' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                      }`}>
+                    <td className={`${config.table.cell} whitespace-nowrap`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeStyle(record.status)}`}>
                         {record.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {record.isLate ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400">
-                          No
-                        </span>
-                      )}
+                    <td className={`${config.table.cell} whitespace-nowrap`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLateBadgeStyle(record.isLate)}`}>
+                        {record.isLate ? 'Yes' : 'No'}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -394,7 +475,7 @@ const StudentModal = ({ student, onClose }) => {
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            className={`${config.button.secondary} px-4 py-2`}
           >
             Close
           </button>
@@ -404,8 +485,426 @@ const StudentModal = ({ student, onClose }) => {
   );
 };
 
+
+// const TeacherAttendanceDashboard = () => {
+//   const dispatch = useDispatch();
+//   const { teacherClassrooms } = useSelector((state) => state.classrooms);
+//   const { classroomAttendance, isLoading } = useSelector((state) => state.attendanceStats);
+//   const [selectedClassroom, setSelectedClassroom] = useState(null);
+//   const [selectedClass, setSelectedClass] = useState(null);
+//   const [chartType, setChartType] = useState('bar');
+//   const [showStudentModal, setShowStudentModal] = useState(false);
+//   const [selectedStudent, setSelectedStudent] = useState(null);
+//   const [viewMode, setViewMode] = useState('overview'); // overview, detailed, analytics
+//   const [itemsToShow, setItemsToShow] = useState(10);
+//   const { user } = useSelector(state => state.auth);
+  
+//   const COLORS = ['#0088FE', '#00C49F', '#FF8042', '#FFBB28'];
+//   const teacherId = user?._id;
+
+//   // Initialize AttendanceProcessor with current data
+//   const attendanceProcessor = useMemo(() => {
+//     if (!classroomAttendance || !classroomAttendance.recordsByClass) return null;
+    
+//     // Transform the data to match the expected format
+//     const transformedData = Object.entries(classroomAttendance.recordsByClass || {}).map(([className, classData]) => ({
+//       className,
+//       records: classData.records || []
+//     }));
+    
+//     return transformedData.length > 0 ? new AttendanceProcessor(transformedData) : null;
+//   }, [classroomAttendance]);
+
+//   // Get processed data using AttendanceProcessor
+//   const processedData = useMemo(() => {
+//     if (!attendanceProcessor) return null;
+
+//     const stats = attendanceProcessor.getAttendanceStats();
+//     const lowAttendanceStudents = attendanceProcessor.findLowAttendanceStudents(75);
+//     const lateStudents = attendanceProcessor.findConsecutivelyLateStudents(2);
+
+//     // Get student summaries for table
+//     const uniqueStudents = [...new Set(attendanceProcessor.flattenedRecords.map(r => r.rollNumber))];
+//     const studentSummaries = uniqueStudents.map(rollNumber => 
+//       attendanceProcessor.getStudentSummary(rollNumber)
+//     ).filter(summary => !summary.error);
+
+//     return {
+//       stats,
+//       lowAttendanceStudents,
+//       lateStudents,
+//       studentSummaries,
+//       allRecords: attendanceProcessor.flattenedRecords
+//     };
+//   }, [attendanceProcessor]);
+
+//   useEffect(() => {
+//     if (teacherId) {
+//       dispatch(getClassroomsByTeacher(teacherId));
+//     }
+//   }, [dispatch, teacherId]);
+
+//   useEffect(() => {
+//     if (teacherClassrooms?.length > 0 && !selectedClassroom) {
+//       setSelectedClassroom(teacherClassrooms[0]._id);
+//       dispatch(getClassroomAttendance(teacherClassrooms[0]._id));
+//     }
+//   }, [teacherClassrooms, dispatch, selectedClassroom]);
+
+//   const handleClassroomChange = (e) => {
+//     const classroomId = e.target.value;
+//     setSelectedClassroom(classroomId);
+//     setSelectedClass(null);
+//     dispatch(getClassroomAttendance(classroomId));
+//   };
+
+//   const handleExportCSV = () => {
+//     if (!attendanceProcessor) return;
+    
+//     const csvData = attendanceProcessor.exportToCSV();
+//     const blob = new Blob([csvData], { type: 'text/csv' });
+//     const url = window.URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `attendance-report-${new Date().toISOString().split('T')[0]}.csv`;
+//     a.click();
+//     window.URL.revokeObjectURL(url);
+//   };
+
+//   const handleStudentClick = (student) => {
+//     setSelectedStudent(student);
+//     setShowStudentModal(true);
+//   };
+
+//   const handleCloseModal = () => {
+//     setShowStudentModal(false);
+//     setSelectedStudent(null);
+//   };
+
+//   if (isLoading) {
+//     return <LoadingSpinner />;
+//   }
+
+//   if (!processedData) {
+//     return (
+//       <div className="p-6">
+//         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+//           <p className="text-yellow-700">No attendance data available for this selection.</p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   const { stats, lowAttendanceStudents, lateStudents, studentSummaries, allRecords } = processedData;
+
+//   return (
+//     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+//       <div className="flex justify-between items-center mb-6">
+//         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+//           Attendance Analytics Dashboard
+//         </h1>
+//         <div className="flex space-x-3">
+//           <button
+//             onClick={handleExportCSV}
+//             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+//           >
+//             <Download size={16} />
+//             <span>Export CSV</span>
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* Controls */}
+//       <div className="mb-6 flex flex-wrap gap-4">
+//         <div className="w-64">
+//           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+//             Select Classroom
+//           </label>
+//           <select 
+//             value={selectedClassroom || ''} 
+//             onChange={handleClassroomChange}
+//             className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
+//           >
+//             {teacherClassrooms && teacherClassrooms.map((classroom) => (
+//               <option key={classroom._id} value={classroom._id}>
+//                 {classroom.name || `${classroom.course?.courseName || 'Unnamed Course'} - ${classroom.group?.name || 'Unnamed Group'}`}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+
+//         <div className="w-48">
+//           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+//             View Mode
+//           </label>
+//           <select 
+//             value={viewMode} 
+//             onChange={(e) => setViewMode(e.target.value)}
+//             className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
+//           >
+//             <option value="overview">Overview</option>
+//             <option value="detailed">Detailed Analysis</option>
+//             <option value="analytics">Advanced Analytics</option>
+//           </select>
+//         </div>
+//       </div>
+
+//       {/* Overview Stats */}
+//       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+//         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+//           <div className="flex items-center">
+//             <Users className="h-8 w-8 text-blue-600" />
+//             <div className="ml-4">
+//               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Records</p>
+//               <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalRecords}</p>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+//           <div className="flex items-center">
+//             <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+//               <div className="h-4 w-4 bg-green-600 rounded-full"></div>
+//             </div>
+//             <div className="ml-4">
+//               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Attendance Rate</p>
+//               <p className="text-2xl font-bold text-green-600">{stats.attendanceRate}%</p>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+//           <div className="flex items-center">
+//             <Clock className="h-8 w-8 text-yellow-600" />
+//             <div className="ml-4">
+//               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Late Rate</p>
+//               <p className="text-2xl font-bold text-yellow-600">{stats.lateRate}%</p>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+//           <div className="flex items-center">
+//             <AlertTriangle className="h-8 w-8 text-red-600" />
+//             <div className="ml-4">
+//               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Low Attendance</p>
+//               <p className="text-2xl font-bold text-red-600">{lowAttendanceStudents.length}</p>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Main Chart */}
+//       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md mb-8">
+//         <div className="flex justify-between items-center mb-4">
+//           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Attendance Overview</h2>
+//           <select 
+//             value={chartType} 
+//             onChange={(e) => setChartType(e.target.value)}
+//             className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+//           >
+//             <option value="bar">Bar Chart</option>
+//             <option value="pie">Pie Chart</option>
+//             <option value="line">Trend Line</option>
+//           </select>
+//         </div>
+
+//         <div className="h-96">
+//           <ResponsiveContainer width="100%" height="100%">
+//             {chartType === 'pie' ? (
+//               <PieChart>
+//                 <Pie
+//                   data={[
+//                     { name: 'Present', value: stats.presentCount },
+//                     { name: 'Absent', value: stats.absentCount },
+//                     { name: 'Late', value: stats.lateCount }
+//                   ]}
+//                   cx="50%"
+//                   cy="50%"
+//                   outerRadius={120}
+//                   fill="#8884d8"
+//                   dataKey="value"
+//                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+//                 >
+//                   {COLORS.map((color, index) => (
+//                     <Cell key={`cell-${index}`} fill={color} />
+//                   ))}
+//                 </Pie>
+//                 <Tooltip />
+//                 <Legend />
+//               </PieChart>
+//             ) : (
+//               <BarChart data={studentSummaries.slice(0, 15)}>
+//                 <CartesianGrid strokeDasharray="3 3" />
+//                 <XAxis dataKey="studentName" angle={-45} textAnchor="end" height={100} />
+//                 <YAxis />
+//                 <Tooltip />
+//                 <Legend />
+//                 <Bar dataKey="attendancePercentage" name="Attendance %" fill="#0088FE" />
+//                 <Bar dataKey="lateClasses" name="Late Classes" fill="#FF8042" />
+//               </BarChart>
+//             )}
+//           </ResponsiveContainer>
+//         </div>
+//       </div>
+
+//       {/* Expandable Sections */}
+//       {viewMode !== 'overview' && (
+//         <>
+//           <Suspense fallback={<LoadingSpinner />}>
+//             <ExpandableSection 
+//               title="Low Attendance Alert" 
+//               icon={<AlertTriangle className="text-red-600" size={20} />}
+//               defaultExpanded={lowAttendanceStudents.length > 0}
+//             >
+//               <div className="space-y-3">
+//                 {lowAttendanceStudents.slice(0, itemsToShow).map((student, index) => (
+//                   <div key={index} className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+//                     <div>
+//                       <p className="font-medium text-gray-900 dark:text-white">{student.studentName}</p>
+//                       <p className="text-sm text-gray-600 dark:text-gray-400">Roll: {student.rollNumber}</p>
+//                     </div>
+//                     <div className="text-right">
+//                       <p className="text-lg font-bold text-red-600">{student.attendancePercentage}%</p>
+//                       <p className="text-sm text-gray-600 dark:text-gray-400">
+//                         {student.presentClasses}/{student.totalClasses} classes
+//                       </p>
+//                     </div>
+//                   </div>
+//                 ))}
+//                 {lowAttendanceStudents.length > itemsToShow && (
+//                   <button
+//                     onClick={() => setItemsToShow(itemsToShow + 10)}
+//                     className="w-full py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+//                   >
+//                     View More ({lowAttendanceStudents.length - itemsToShow} remaining)
+//                   </button>
+//                 )}
+//               </div>
+//             </ExpandableSection>
+
+//             <ExpandableSection 
+//               title="Consistently Late Students" 
+//               icon={<Clock className="text-yellow-600" size={20} />}
+//             >
+//               <div className="space-y-3">
+//                 {lateStudents.slice(0, 5).map((student, index) => (
+//                   <div key={index} className="flex justify-between items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+//                     <div>
+//                       <p className="font-medium text-gray-900 dark:text-white">{student.studentName}</p>
+//                       <p className="text-sm text-gray-600 dark:text-gray-400">Roll: {student.rollNumber}</p>
+//                     </div>
+//                     <div className="text-right">
+//                       <p className="text-lg font-bold text-yellow-600">{student.maxConsecutiveLate} consecutive</p>
+//                       <p className="text-sm text-gray-600 dark:text-gray-400">
+//                         {student.totalLateClasses} late classes total
+//                       </p>
+//                     </div>
+//                   </div>
+//                 ))}
+//               </div>
+//             </ExpandableSection>
+//           </Suspense>
+//         </>
+//       )}
+
+//       {/* Student Details Table */}
+//       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+//         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+//           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Student Details</h3>
+//         </div>
+//         <div className="overflow-x-auto">
+//           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+//             <thead className="bg-gray-50 dark:bg-gray-900">
+//               <tr>
+//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+//                   Student
+//                 </th>
+//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+//                   Roll Number
+//                 </th>
+//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+//                   Attendance Rate
+//                 </th>
+//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+//                   Present/Total
+//                 </th>
+//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+//                   Late Classes
+//                 </th>
+//                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+//                   Actions
+//                 </th>
+//               </tr>
+//             </thead>
+//             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+//               {studentSummaries.slice(0, itemsToShow).map((student, index) => (
+//                 <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+//                   <td className="px-6 py-4 whitespace-nowrap">
+//                     <div className="text-sm font-medium text-gray-900 dark:text-white">{student.studentName}</div>
+//                   </td>
+//                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+//                     {student.rollNumber}
+//                   </td>
+//                   <td className="px-6 py-4 whitespace-nowrap">
+//                     <div className="flex items-center">
+//                       <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
+//                         <div 
+//                           className={`h-2 rounded-full ${
+//                             student.attendancePercentage >= 90 ? 'bg-green-600' :
+//                             student.attendancePercentage >= 75 ? 'bg-yellow-400' : 'bg-red-600'
+//                           }`}
+//                           style={{ width: `${student.attendancePercentage}%` }}
+//                         ></div>
+//                       </div>
+//                       <span className="text-sm font-medium text-gray-900 dark:text-white">
+//                         {student.attendancePercentage}%
+//                       </span>
+//                     </div>
+//                   </td>
+//                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+//                     {student.presentClasses}/{student.totalClasses}
+//                   </td>
+//                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+//                     {student.lateClasses}
+//                   </td>
+//                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+//                     <button
+//                       onClick={() => handleStudentClick(student)}
+//                       className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+//                     >
+//                       View Details
+//                     </button>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         </div>
+//         {studentSummaries.length > itemsToShow && (
+//           <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900">
+//             <button
+//               onClick={() => setItemsToShow(itemsToShow + 10)}
+//               className="w-full py-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+//             >
+//               Load More ({studentSummaries.length - itemsToShow} remaining)
+//             </button>
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Student Details Modal */}
+//       {showStudentModal && selectedStudent && (
+//         <StudentModal student={selectedStudent} onClose={handleCloseModal} />
+//       )}
+//     </div>
+//   );
+// };
 const TeacherAttendanceDashboard = () => {
   const dispatch = useDispatch();
+  const { themeConfig, theme } = useTheme(); // Use your theme
+  const currentTheme = themeConfig[theme]; // Get current theme config
+
   const { teacherClassrooms } = useSelector((state) => state.classrooms);
   const { classroomAttendance, isLoading } = useSelector((state) => state.attendanceStats);
   const [selectedClassroom, setSelectedClassroom] = useState(null);
@@ -458,14 +957,14 @@ const TeacherAttendanceDashboard = () => {
 
   useEffect(() => {
     if (teacherId) {
-      // dispatch(getClassroomsByTeacher(teacherId));
+      dispatch(getClassroomsByTeacher(teacherId));
     }
   }, [dispatch, teacherId]);
 
   useEffect(() => {
     if (teacherClassrooms?.length > 0 && !selectedClassroom) {
       setSelectedClassroom(teacherClassrooms[0]._id);
-      // dispatch(getClassroomAttendance(teacherClassrooms[0]._id));
+      dispatch(getClassroomAttendance(teacherClassrooms[0]._id));
     }
   }, [teacherClassrooms, dispatch, selectedClassroom]);
 
@@ -473,7 +972,7 @@ const TeacherAttendanceDashboard = () => {
     const classroomId = e.target.value;
     setSelectedClassroom(classroomId);
     setSelectedClass(null);
-    // dispatch(getClassroomAttendance(classroomId));
+    dispatch(getClassroomAttendance(classroomId));
   };
 
   const handleExportCSV = () => {
@@ -505,9 +1004,9 @@ const TeacherAttendanceDashboard = () => {
 
   if (!processedData) {
     return (
-      <div className="p-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-          <p className="text-yellow-700">No attendance data available for this selection.</p>
+      <div className={`p-6 ${currentTheme.background} min-h-screen`}>
+        <div className={`${currentTheme.card} p-4`}>
+          <p className={`${currentTheme.secondaryText}`}>No attendance data available for this selection.</p>
         </div>
       </div>
     );
@@ -516,15 +1015,15 @@ const TeacherAttendanceDashboard = () => {
   const { stats, lowAttendanceStudents, lateStudents, studentSummaries, allRecords } = processedData;
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className={`p-6 ${currentTheme.background} min-h-screen`}>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className={`text-3xl font-bold ${currentTheme.text}`}>
           Attendance Analytics Dashboard
         </h1>
         <div className="flex space-x-3">
           <button
             onClick={handleExportCSV}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className={`flex items-center space-x-2 px-4 py-2 ${currentTheme.button.primary}`}
           >
             <Download size={16} />
             <span>Export CSV</span>
@@ -535,13 +1034,13 @@ const TeacherAttendanceDashboard = () => {
       {/* Controls */}
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="w-64">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className={`block text-sm font-medium ${currentTheme.secondaryText} mb-1`}>
             Select Classroom
           </label>
           <select 
             value={selectedClassroom || ''} 
             onChange={handleClassroomChange}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
+            className={`w-full px-3 py-2 ${currentTheme.select}`}
           >
             {teacherClassrooms && teacherClassrooms.map((classroom) => (
               <option key={classroom._id} value={classroom._id}>
@@ -552,13 +1051,13 @@ const TeacherAttendanceDashboard = () => {
         </div>
 
         <div className="w-48">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className={`block text-sm font-medium ${currentTheme.secondaryText} mb-1`}>
             View Mode
           </label>
           <select 
             value={viewMode} 
             onChange={(e) => setViewMode(e.target.value)}
-            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white"
+            className={`w-full px-3 py-2 ${currentTheme.select}`}
           >
             <option value="overview">Overview</option>
             <option value="detailed">Detailed Analysis</option>
@@ -569,57 +1068,57 @@ const TeacherAttendanceDashboard = () => {
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+        <div className={`${currentTheme.card} p-6`}>
           <div className="flex items-center">
-            <Users className="h-8 w-8 text-blue-600" />
+            <Users className={`h-8 w-8 ${currentTheme.icon}`} />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Records</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalRecords}</p>
+              <p className={`text-sm font-medium ${currentTheme.secondaryText}`}>Total Records</p>
+              <p className={`text-2xl font-bold ${currentTheme.text}`}>{stats.totalRecords}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+        <div className={`${currentTheme.card} p-6`}>
           <div className="flex items-center">
             <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
               <div className="h-4 w-4 bg-green-600 rounded-full"></div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Attendance Rate</p>
-              <p className="text-2xl font-bold text-green-600">{stats.attendanceRate}%</p>
+              <p className={`text-sm font-medium ${currentTheme.secondaryText}`}>Attendance Rate</p>
+              <p className={`text-2xl font-bold ${currentTheme.table.accent1}`}>{stats.attendanceRate}%</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+        <div className={`${currentTheme.card} p-6`}>
           <div className="flex items-center">
-            <Clock className="h-8 w-8 text-yellow-600" />
+            <Clock className={`h-8 w-8 text-yellow-600`} />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Late Rate</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.lateRate}%</p>
+              <p className={`text-sm font-medium ${currentTheme.secondaryText}`}>Late Rate</p>
+              <p className={`text-2xl font-bold text-yellow-600`}>{stats.lateRate}%</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+        <div className={`${currentTheme.card} p-6`}>
           <div className="flex items-center">
-            <AlertTriangle className="h-8 w-8 text-red-600" />
+            <AlertTriangle className={`h-8 w-8 ${currentTheme.table.accent2}`} />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Low Attendance</p>
-              <p className="text-2xl font-bold text-red-600">{lowAttendanceStudents.length}</p>
+              <p className={`text-sm font-medium ${currentTheme.secondaryText}`}>Low Attendance</p>
+              <p className={`text-2xl font-bold ${currentTheme.table.accent2}`}>{lowAttendanceStudents.length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md mb-8">
+      <div className={`${currentTheme.card} p-6 mb-8`}>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Attendance Overview</h2>
+          <h2 className={`text-xl font-semibold ${currentTheme.text}`}>Attendance Overview</h2>
           <select 
             value={chartType} 
             onChange={(e) => setChartType(e.target.value)}
-            className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+            className={`px-3 py-2 ${currentTheme.select} text-sm`}
           >
             <option value="bar">Bar Chart</option>
             <option value="pie">Pie Chart</option>
@@ -672,19 +1171,19 @@ const TeacherAttendanceDashboard = () => {
           <Suspense fallback={<LoadingSpinner />}>
             <ExpandableSection 
               title="Low Attendance Alert" 
-              icon={<AlertTriangle className="text-red-600" size={20} />}
+              icon={<AlertTriangle className={`${currentTheme.table.accent2}`} size={20} />}
               defaultExpanded={lowAttendanceStudents.length > 0}
             >
               <div className="space-y-3">
                 {lowAttendanceStudents.slice(0, itemsToShow).map((student, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <div key={index} className={`flex justify-between items-center p-3 ${currentTheme.button.danger} rounded-lg`}>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{student.studentName}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Roll: {student.rollNumber}</p>
+                      <p className={`font-medium ${currentTheme.text}`}>{student.studentName}</p>
+                      <p className={`text-sm ${currentTheme.secondaryText}`}>Roll: {student.rollNumber}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-red-600">{student.attendancePercentage}%</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className={`text-lg font-bold ${currentTheme.table.accent2}`}>{student.attendancePercentage}%</p>
+                      <p className={`text-sm ${currentTheme.secondaryText}`}>
                         {student.presentClasses}/{student.totalClasses} classes
                       </p>
                     </div>
@@ -693,7 +1192,7 @@ const TeacherAttendanceDashboard = () => {
                 {lowAttendanceStudents.length > itemsToShow && (
                   <button
                     onClick={() => setItemsToShow(itemsToShow + 10)}
-                    className="w-full py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    className={`w-full py-2 ${currentTheme.button.secondary} text-sm font-medium`}
                   >
                     View More ({lowAttendanceStudents.length - itemsToShow} remaining)
                   </button>
@@ -707,14 +1206,14 @@ const TeacherAttendanceDashboard = () => {
             >
               <div className="space-y-3">
                 {lateStudents.slice(0, 5).map((student, index) => (
-                  <div key={index} className="flex justify-between items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                  <div key={index} className={`flex justify-between items-center p-3 ${currentTheme.button.orange} rounded-lg`}>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{student.studentName}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Roll: {student.rollNumber}</p>
+                      <p className={`font-medium ${currentTheme.text}`}>{student.studentName}</p>
+                      <p className={`text-sm ${currentTheme.secondaryText}`}>Roll: {student.rollNumber}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-yellow-600">{student.maxConsecutiveLate} consecutive</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className={`text-sm ${currentTheme.secondaryText}`}>
                         {student.totalLateClasses} late classes total
                       </p>
                     </div>
@@ -727,46 +1226,46 @@ const TeacherAttendanceDashboard = () => {
       )}
 
       {/* Student Details Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Student Details</h3>
+      <div className={`${currentTheme.card}`}>
+        <div className={`px-6 py-4 ${currentTheme.table.header}`}>
+          <h3 className={`text-lg font-semibold ${currentTheme.text}`}>Student Details</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className={`${currentTheme.table.header}`}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.secondaryText} uppercase tracking-wider`}>
                   Student
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.secondaryText} uppercase tracking-wider`}>
                   Roll Number
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.secondaryText} uppercase tracking-wider`}>
                   Attendance Rate
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.secondaryText} uppercase tracking-wider`}>
                   Present/Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.secondaryText} uppercase tracking-wider`}>
                   Late Classes
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className={`px-6 py-3 text-left text-xs font-medium ${currentTheme.secondaryText} uppercase tracking-wider`}>
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className={`${currentTheme.card} divide-y divide-gray-200`}>
               {studentSummaries.slice(0, itemsToShow).map((student, index) => (
-                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr key={index} className={`${currentTheme.table.row}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{student.studentName}</div>
+                    <div className={`text-sm font-medium ${currentTheme.text}`}>{student.studentName}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.secondaryText}`}>
                     {student.rollNumber}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2 mr-2">
+                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                         <div 
                           className={`h-2 rounded-full ${
                             student.attendancePercentage >= 90 ? 'bg-green-600' :
@@ -775,21 +1274,21 @@ const TeacherAttendanceDashboard = () => {
                           style={{ width: `${student.attendancePercentage}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      <span className={`text-sm font-medium ${currentTheme.text}`}>
                         {student.attendancePercentage}%
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.secondaryText}`}>
                     {student.presentClasses}/{student.totalClasses}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${currentTheme.secondaryText}`}>
                     {student.lateClasses}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => handleStudentClick(student)}
-                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                      className={`${currentTheme.table.accent1} hover:opacity-80`}
                     >
                       View Details
                     </button>
@@ -800,10 +1299,10 @@ const TeacherAttendanceDashboard = () => {
           </table>
         </div>
         {studentSummaries.length > itemsToShow && (
-          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900">
+          <div className={`px-6 py-4 ${currentTheme.table.header}`}>
             <button
               onClick={() => setItemsToShow(itemsToShow + 10)}
-              className="w-full py-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+              className={`w-full py-2 ${currentTheme.button.secondary} text-sm font-medium`}
             >
               Load More ({studentSummaries.length - itemsToShow} remaining)
             </button>
@@ -812,11 +1311,13 @@ const TeacherAttendanceDashboard = () => {
       </div>
 
       {/* Student Details Modal */}
-      {showStudentModal && selectedStudent && (
+       {showStudentModal && selectedStudent && (
         <StudentModal student={selectedStudent} onClose={handleCloseModal} />
-      )}
+       )}
     </div>
   );
 };
+
+// export default TeacherAttendanceDashboard;
 
 export default TeacherAttendanceDashboard;
