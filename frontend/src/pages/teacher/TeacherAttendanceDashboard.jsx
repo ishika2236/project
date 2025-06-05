@@ -505,6 +505,18 @@ const TeacherAttendanceDashboard = () => {
   
   const COLORS = ['#0088FE', '#00C49F', '#FF8042', '#FFBB28'];
   const teacherId = user?._id;
+  useEffect(() => {
+    console.log('🔍 DEBUGGING ATTENDANCE DATA:');
+    console.log('1. teacherId:', teacherId);
+    console.log('2. selectedClassroom:', selectedClassroom);
+    console.log('3. teacherClassrooms:', teacherClassrooms);
+    console.log('4. classroomAttendance full object:', classroomAttendance);
+    console.log('5. recordsByClass keys:', classroomAttendance?.recordsByClass ? Object.keys(classroomAttendance.recordsByClass) : 'NO KEYS');
+    console.log('6. recordsByClass values:', classroomAttendance?.recordsByClass ? Object.values(classroomAttendance.recordsByClass) : 'NO VALUES');
+    // console.log('7. Environment:', import.meta.env.NODE_ENV);
+    console.log('8. API Base URL:', import.meta.env.VITE_API_URL || 'NOT SET');
+  }, [teacherId, selectedClassroom, teacherClassrooms, classroomAttendance]);
+
 
   // Initialize AttendanceProcessor with current data
   const attendanceProcessor = useMemo(() => {
@@ -629,22 +641,9 @@ const TeacherAttendanceDashboard = () => {
         </div>
       </div>
     );
-  }console.log('Pre-processedData check:', {
-    classroomAttendance,
-    recordsByClass: classroomAttendance?.recordsByClass,
-    attendanceProcessor,
-    processedData
-  });
-  {console.log(processedData)}
-  if (!processedData) {
-    return (
-      <div className={`p-6 ${currentTheme.background} min-h-screen`}>
-        <div className={`${currentTheme.card} p-4`}>
-          <p className={`${currentTheme.secondaryText}`}>No attendance data available for this selection.</p>
-        </div>
-      </div>
-    );
   }
+  {console.log(processedData)}
+  
 
   const { stats, lowAttendanceStudents, lateStudents, studentSummaries, allRecords } = processedData;
 
