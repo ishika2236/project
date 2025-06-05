@@ -517,7 +517,7 @@ const TeacherAttendanceDashboard = () => {
     }));
     
     return transformedData.length > 0 ? new AttendanceProcessor(transformedData) : null;
-  }, [classroomAttendance]);
+  }, [classroomAttendance, classroomAttendance?.recordsByClass]);
 
   // Get processed data using AttendanceProcessor
   const processedData = useMemo(() => {
