@@ -1,4 +1,5 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+
+import React, { useEffect, useState, lazy, Suspense, useMemo, useCallback } from 'react';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { 
   BarChart, 
@@ -28,117 +29,177 @@ const LowAttendanceAlert = lazy(() => import('../../components/teacher/modals/Lo
 const LateStudentsPanel = lazy(() => import('../../components/teacher/modals/LateStudentsPanel'));
 import { useTheme } from '../../context/ThemeProvider';
 
-// AttendanceProcessor class (you can import this from your separate file)
+// AttendanceProcessor class with optimizations
 class AttendanceProcessor {
   constructor(attendanceData) {
     this.data = attendanceData;
-    this.flattenedRecords = this.flattenData();
+    this.flattenedRecords = null;
+    this.studentStatsCache = new Map();
+    this.processedStatsCache = null;
+  }
+
+  // Lazy initialization of flattened data
+  getFlattenedData() {
+    if (this.flattenedRecords === null) {
+      this.flattenedRecords = this.flattenData();
+    }
+    return this.flattenedRecords;
   }
 
   flattenData() {
+    console.log('Starting data flattening...');
     const flattened = [];
+    
+    if (!this.data || !Array.isArray(this.data)) {
+      console.warn('Invalid data format:', this.data);
+      return flattened;
+    }
+
     this.data.forEach(classGroup => {
+      if (!classGroup || !classGroup.records || !Array.isArray(classGroup.records)) {
+        console.warn('Invalid class group:', classGroup);
+        return;
+      }
+
       classGroup.records.forEach(record => {
+        if (!record || !record.student) {
+          console.warn('Invalid record:', record);
+          return;
+        }
+
+        const markedAtDate = new Date(record.markedAt);
         flattened.push({
           ...record,
           className: classGroup.className,
-          studentName: `${record.student.firstName} ${record.student.lastName}`,
+          studentName: `${record.student.firstName || ''} ${record.student.lastName || ''}`.trim(),
           rollNumber: record.student.rollNumber,
-          classDate: new Date(record.markedAt).toDateString(),
-          classTime: new Date(record.markedAt).toLocaleTimeString(),
-          isLate: this.isStudentLate(record)
+          classDate: markedAtDate.toDateString(),
+          classTime: markedAtDate.toLocaleTimeString(),
+          isLate: this.isStudentLate(record),
+          markedAtTimestamp: markedAtDate.getTime() // For faster sorting
         });
       });
     });
+    
+    console.log(`Flattened ${flattened.length} records`);
     return flattened;
   }
 
   isStudentLate(record) {
-    const markedTime = new Date(record.markedAt);
-    const classStartTime = new Date(record.class?.schedule?.startTime || record.markedAt);
-    return markedTime > classStartTime;
+    try {
+      const markedTime = new Date(record.markedAt);
+      const classStartTime = new Date(record.class?.schedule?.startTime || record.markedAt);
+      return markedTime > classStartTime;
+    } catch (error) {
+      console.warn('Error checking late status:', error);
+      return false;
+    }
   }
 
   getStudentSummary(rollNumber) {
-    const studentRecords = this.flattenedRecords.filter(
+    // Check cache first
+    if (this.studentStatsCache.has(rollNumber)) {
+      return this.studentStatsCache.get(rollNumber);
+    }
+
+    const flattenedData = this.getFlattenedData();
+    const studentRecords = flattenedData.filter(
       record => record.rollNumber === rollNumber
     );
 
     if (studentRecords.length === 0) {
-      return { error: 'Student not found' };
+      const result = { error: 'Student not found' };
+      this.studentStatsCache.set(rollNumber, result);
+      return result;
     }
 
     const totalClasses = studentRecords.length;
     const presentClasses = studentRecords.filter(r => r.status === 'present').length;
     const absentClasses = studentRecords.filter(r => r.status === 'absent').length;
     const lateClasses = studentRecords.filter(r => r.isLate).length;
-    const attendancePercentage = ((presentClasses / totalClasses) * 100).toFixed(2);
+    const attendancePercentage = totalClasses > 0 ? ((presentClasses / totalClasses) * 100) : 0;
 
-    return {
+    const result = {
       studentName: studentRecords[0].studentName,
       rollNumber: rollNumber,
       totalClasses,
       presentClasses,
       absentClasses,
       lateClasses,
-      attendancePercentage: parseFloat(attendancePercentage),
-      records: studentRecords.sort((a, b) => new Date(b.markedAt) - new Date(a.markedAt))
+      attendancePercentage: parseFloat(attendancePercentage.toFixed(2)),
+      records: studentRecords.sort((a, b) => b.markedAtTimestamp - a.markedAtTimestamp)
     };
+
+    // Cache the result
+    this.studentStatsCache.set(rollNumber, result);
+    return result;
   }
 
   findLowAttendanceStudents(threshold = 75) {
-    const studentStats = {};
+    console.log('Finding low attendance students...');
+    const flattenedData = this.getFlattenedData();
+    const studentStats = new Map();
 
-    this.flattenedRecords.forEach(record => {
+    // Build stats more efficiently
+    flattenedData.forEach(record => {
       const rollNumber = record.rollNumber;
-      if (!studentStats[rollNumber]) {
-        studentStats[rollNumber] = {
+      if (!studentStats.has(rollNumber)) {
+        studentStats.set(rollNumber, {
           studentName: record.studentName,
           rollNumber: rollNumber,
           totalClasses: 0,
           presentClasses: 0,
           absentClasses: 0,
           lateClasses: 0
-        };
+        });
       }
 
-      studentStats[rollNumber].totalClasses++;
+      const stats = studentStats.get(rollNumber);
+      stats.totalClasses++;
+      
       if (record.status === 'present') {
-        studentStats[rollNumber].presentClasses++;
+        stats.presentClasses++;
       } else {
-        studentStats[rollNumber].absentClasses++;
+        stats.absentClasses++;
       }
+      
       if (record.isLate) {
-        studentStats[rollNumber].lateClasses++;
+        stats.lateClasses++;
       }
     });
 
-    const lowAttendanceStudents = Object.values(studentStats)
+    const lowAttendanceStudents = Array.from(studentStats.values())
       .map(student => ({
         ...student,
-        attendancePercentage: ((student.presentClasses / student.totalClasses) * 100).toFixed(2)
+        attendancePercentage: student.totalClasses > 0 
+          ? parseFloat(((student.presentClasses / student.totalClasses) * 100).toFixed(2))
+          : 0
       }))
-      .filter(student => parseFloat(student.attendancePercentage) < threshold)
-      .sort((a, b) => parseFloat(a.attendancePercentage) - parseFloat(b.attendancePercentage));
+      .filter(student => student.attendancePercentage < threshold)
+      .sort((a, b) => a.attendancePercentage - b.attendancePercentage);
 
+    console.log(`Found ${lowAttendanceStudents.length} low attendance students`);
     return lowAttendanceStudents;
   }
 
   findConsecutivelyLateStudents(consecutiveDays = 3) {
-    const studentRecords = {};
+    console.log('Finding consistently late students...');
+    const flattenedData = this.getFlattenedData();
+    const studentRecords = new Map();
     
-    this.flattenedRecords.forEach(record => {
+    // Group records by student
+    flattenedData.forEach(record => {
       const rollNumber = record.rollNumber;
-      if (!studentRecords[rollNumber]) {
-        studentRecords[rollNumber] = [];
+      if (!studentRecords.has(rollNumber)) {
+        studentRecords.set(rollNumber, []);
       }
-      studentRecords[rollNumber].push(record);
+      studentRecords.get(rollNumber).push(record);
     });
 
     const consistentlyLateStudents = [];
 
-    Object.entries(studentRecords).forEach(([rollNumber, records]) => {
-      const sortedRecords = records.sort((a, b) => new Date(a.markedAt) - new Date(b.markedAt));
+    studentRecords.forEach((records, rollNumber) => {
+      const sortedRecords = records.sort((a, b) => a.markedAtTimestamp - b.markedAtTimestamp);
       
       let consecutiveLateCount = 0;
       let maxConsecutiveLate = 0;
@@ -172,21 +233,32 @@ class AttendanceProcessor {
       }
     });
 
-    return consistentlyLateStudents.sort((a, b) => b.maxConsecutiveLate - a.maxConsecutiveLate);
+    const result = consistentlyLateStudents.sort((a, b) => b.maxConsecutiveLate - a.maxConsecutiveLate);
+    console.log(`Found ${result.length} consistently late students`);
+    return result;
   }
 
   getAttendanceStats(startDate = null, endDate = null) {
-    let filteredRecords = this.flattenedRecords;
+    // Use cache if no date filtering
+    if (!startDate && !endDate && this.processedStatsCache) {
+      return this.processedStatsCache;
+    }
+
+    console.log('Calculating attendance stats...');
+    const flattenedData = this.getFlattenedData();
+    let filteredRecords = flattenedData;
 
     if (startDate) {
+      const startTime = new Date(startDate).getTime();
       filteredRecords = filteredRecords.filter(record => 
-        new Date(record.markedAt) >= new Date(startDate)
+        record.markedAtTimestamp >= startTime
       );
     }
 
     if (endDate) {
+      const endTime = new Date(endDate).getTime();
       filteredRecords = filteredRecords.filter(record => 
-        new Date(record.markedAt) <= new Date(endDate)
+        record.markedAtTimestamp <= endTime
       );
     }
 
@@ -195,21 +267,30 @@ class AttendanceProcessor {
     const absentCount = filteredRecords.filter(r => r.status === 'absent').length;
     const lateCount = filteredRecords.filter(r => r.isLate).length;
 
-    return {
+    const stats = {
       totalRecords,
       presentCount,
       absentCount,
       lateCount,
-      attendanceRate: ((presentCount / totalRecords) * 100).toFixed(2),
-      lateRate: ((lateCount / totalRecords) * 100).toFixed(2),
+      attendanceRate: totalRecords > 0 ? parseFloat(((presentCount / totalRecords) * 100).toFixed(2)) : 0,
+      lateRate: totalRecords > 0 ? parseFloat(((lateCount / totalRecords) * 100).toFixed(2)) : 0,
       dateRange: {
         start: startDate,
         end: endDate
       }
     };
+
+    // Cache if no filtering
+    if (!startDate && !endDate) {
+      this.processedStatsCache = stats;
+    }
+
+    console.log('Stats calculated:', stats);
+    return stats;
   }
 
   exportToCSV() {
+    const flattenedData = this.getFlattenedData();
     const headers = [
       'Student Name', 'Roll Number', 'Class Name', 'Date', 'Time', 
       'Status', 'Late', 'Face Recognized', 'Marked By'
@@ -217,7 +298,7 @@ class AttendanceProcessor {
     
     const csvData = [headers];
     
-    this.flattenedRecords.forEach(record => {
+    flattenedData.forEach(record => {
       csvData.push([
         record.studentName,
         record.rollNumber,
@@ -236,9 +317,24 @@ class AttendanceProcessor {
 }
 
 // Loading component
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center h-64">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+const LoadingSpinner = ({ message = "Loading..." }) => (
+  <div className="flex flex-col justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+    <p className="text-gray-600">{message}</p>
+  </div>
+);
+
+// Error boundary component
+const ErrorFallback = ({ error, resetError }) => (
+  <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+    <h2 className="text-lg font-semibold text-red-800 mb-2">Something went wrong</h2>
+    <p className="text-red-600 mb-4">{error.message}</p>
+    <button 
+      onClick={resetError}
+      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+    >
+      Try Again
+    </button>
   </div>
 );
 
@@ -285,7 +381,6 @@ const ExpandableSection = ({ title, children, defaultExpanded = false, icon }) =
     </div>
   );
 };
-
 
 // Student Details Modal Component
 const StudentModal = ({ student, onClose }) => {
@@ -485,76 +580,95 @@ const StudentModal = ({ student, onClose }) => {
   );
 };
 
-
-
 const TeacherAttendanceDashboard = () => {
   const dispatch = useDispatch();
-  const { themeConfig, theme } = useTheme(); // Use your theme
-  const currentTheme = themeConfig[theme]; // Get current theme config
+  const { themeConfig, theme } = useTheme();
+  const currentTheme = themeConfig[theme];
 
   const { teacherClassrooms } = useSelector((state) => state.classrooms);
-  const { classroomAttendance, isLoading } = useSelector((state) => state.attendanceStats);
+  const { classroomAttendance, isLoading, error } = useSelector((state) => state.attendanceStats);
+  const { user } = useSelector(state => state.auth);
+  
   const [selectedClassroom, setSelectedClassroom] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [chartType, setChartType] = useState('bar');
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [viewMode, setViewMode] = useState('overview'); // overview, detailed, analytics
+  const [viewMode, setViewMode] = useState('overview');
   const [itemsToShow, setItemsToShow] = useState(10);
-  const [attendanceProcessor, setAttendanceProcessor] = useState(null);
-  const [processedData, setProcessedData] = useState(null);
-  const { user } = useSelector(state => state.auth);
+  const [processingError, setProcessingError] = useState(null);
   
   const COLORS = ['#0088FE', '#00C49F', '#FF8042', '#FFBB28'];
   const teacherId = user?._id;
-  
 
-  // Process data whenever classroomAttendance changes
-  useEffect(() => {
-    if (classroomAttendance && classroomAttendance.recordsByClass) {
-      console.log('Processing attendance data:', classroomAttendance);
+  // Memoized attendance processor
+  const attendanceProcessor = useMemo(() => {
+    if (!classroomAttendance?.recordsByClass) {
+      console.log('No classroom attendance data available');
+      return null;
+    }
+
+    try {
+      console.log('Creating attendance processor with data:', classroomAttendance.recordsByClass);
       
       // Transform the data to match the expected format
-      const transformedData = Object.entries(classroomAttendance.recordsByClass || {}).map(([className, classData]) => ({
+      const transformedData = Object.entries(classroomAttendance.recordsByClass).map(([className, classData]) => ({
         className,
-        records: classData.records || []
+        records: Array.isArray(classData.records) ? classData.records : []
       }));
       
-      if (transformedData.length > 0) {
-        const processor = new AttendanceProcessor(transformedData);
-        setAttendanceProcessor(processor);
-        
-        // Get processed data
-        const stats = processor.getAttendanceStats();
-        const lowAttendanceStudents = processor.findLowAttendanceStudents(75);
-        const lateStudents = processor.findConsecutivelyLateStudents(2);
-
-        // Get student summaries for table
-        const uniqueStudents = [...new Set(processor.flattenedRecords.map(r => r.rollNumber))];
-        const studentSummaries = uniqueStudents.map(rollNumber => 
-          processor.getStudentSummary(rollNumber)
-        ).filter(summary => !summary.error);
-
-        const processed = {
-          stats,
-          lowAttendanceStudents,
-          lateStudents,
-          studentSummaries,
-          allRecords: processor.flattenedRecords
-        };
-        
-        console.log('Processed data:', processed);
-        setProcessedData(processed);
-      } else {
-        setAttendanceProcessor(null);
-        setProcessedData(null);
+      if (transformedData.length === 0) {
+        console.log('No transformed data available');
+        return null;
       }
-    } else {
-      setAttendanceProcessor(null);
-      setProcessedData(null);
+      
+      return new AttendanceProcessor(transformedData);
+    } catch (error) {
+      console.error('Error creating attendance processor:', error);
+      setProcessingError(error.message);
+      return null;
     }
   }, [classroomAttendance]);
 
+  // Memoized processed data
+  const processedData = useMemo(() => {
+    if (!attendanceProcessor) {
+      return null;
+    }
+
+    try {
+      setProcessingError(null);
+      console.log('Processing attendance data...');
+      
+      const stats = attendanceProcessor.getAttendanceStats();
+      const lowAttendanceStudents = attendanceProcessor.findLowAttendanceStudents(75);
+      const lateStudents = attendanceProcessor.findConsecutivelyLateStudents(2);
+
+      // Get student summaries for table
+      const flattenedData = attendanceProcessor.getFlattenedData();
+      const uniqueStudents = [...new Set(flattenedData.map(r => r.rollNumber))];
+      const studentSummaries = uniqueStudents
+        .map(rollNumber => attendanceProcessor.getStudentSummary(rollNumber))
+        .filter(summary => !summary.error);
+
+      const result = {
+        stats,
+        lowAttendanceStudents,
+        lateStudents,
+        studentSummaries,
+        allRecords: flattenedData
+      };
+      
+      console.log('Data processed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error processing attendance data:', error);
+      setProcessingError(error.message);
+      return null;
+    }
+  }, [attendanceProcessor]);
+
+  // Effect for fetching teacher classrooms
   useEffect(() => {
     console.log('Teacher ID check:', teacherId);
     if (teacherId) {
@@ -563,7 +677,8 @@ const TeacherAttendanceDashboard = () => {
       console.warn('No teacherId available');
     }
   }, [dispatch, teacherId]);
-  
+
+  // Effect for setting initial classroom
   useEffect(() => {
     console.log('Classroom selection effect:', {
       teacherClassrooms: teacherClassrooms?.length,
@@ -578,29 +693,19 @@ const TeacherAttendanceDashboard = () => {
       dispatch(getClassroomAttendance(firstClassroomId));
     }
   }, [teacherClassrooms, dispatch, selectedClassroom, isLoading]);
-  
-  useEffect(() => {
-    if (selectedClassroom && !isLoading) {
-      console.log('Refreshing attendance data for classroom:', selectedClassroom);
-      dispatch(getClassroomAttendance(selectedClassroom));
-    }
-  }, [selectedClassroom, dispatch]);
-  
 
-  useEffect(() => {
-    if (teacherClassrooms?.length > 0 && !selectedClassroom) {
-      setSelectedClassroom(teacherClassrooms[0]._id);
-      dispatch(getClassroomAttendance(teacherClassrooms[0]._id));
-    }
-  }, [teacherClassrooms, dispatch, selectedClassroom]);
-
-  const handleClassroomChange = (e) => {
+  // Debounced classroom change handler
+  const handleClassroomChange = useCallback((e) => {
     const classroomId = e.target.value;
+    console.log('Classroom change:', classroomId);
     setSelectedClassroom(classroomId);
     setSelectedClass(null);
-    dispatch(getClassroomAttendance(classroomId));
-  };
-
+    setProcessingError(null);
+    
+    if (classroomId) {
+      dispatch(getClassroomAttendance(classroomId));
+    }
+  }, [dispatch]);
   const handleExportCSV = () => {
     if (!attendanceProcessor) return;
     
