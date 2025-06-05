@@ -234,14 +234,7 @@
 //     return csvData.map(row => row.join(',')).join('\n');
 //   }
 // }
-
-// // Loading component
-// const LoadingSpinner = () => (
-//   <div className="flex justify-center items-center h-64">
-//     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-//   </div>
-// );
-import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { 
   BarChart, 
@@ -443,8 +436,8 @@ class AttendanceProcessor {
       presentCount,
       absentCount,
       lateCount,
-      attendanceRate: totalRecords > 0 ? ((presentCount / totalRecords) * 100).toFixed(2) : '0',
-      lateRate: totalRecords > 0 ? ((lateCount / totalRecords) * 100).toFixed(2) : '0',
+      attendanceRate: ((presentCount / totalRecords) * 100).toFixed(2),
+      lateRate: ((lateCount / totalRecords) * 100).toFixed(2),
       dateRange: {
         start: startDate,
         end: endDate
@@ -477,7 +470,6 @@ class AttendanceProcessor {
     return csvData.map(row => row.join(',')).join('\n');
   }
 }
-
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-64">
@@ -748,18 +740,7 @@ const TeacherAttendanceDashboard = () => {
   
   const COLORS = ['#0088FE', '#00C49F', '#FF8042', '#FFBB28'];
   const teacherId = user?._id;
-  useEffect(() => {
-    console.log('🔍 DEBUGGING ATTENDANCE DATA:');
-    console.log('1. teacherId:', teacherId);
-    console.log('2. selectedClassroom:', selectedClassroom);
-    console.log('3. teacherClassrooms:', teacherClassrooms);
-    console.log('4. classroomAttendance full object:', classroomAttendance);
-    console.log('5. recordsByClass keys:', classroomAttendance?.recordsByClass ? Object.keys(classroomAttendance.recordsByClass) : 'NO KEYS');
-    console.log('6. recordsByClass values:', classroomAttendance?.recordsByClass ? Object.values(classroomAttendance.recordsByClass) : 'NO VALUES');
-    // console.log('7. Environment:', import.meta.env.NODE_ENV);
-    console.log('8. API Base URL:', import.meta.env.VITE_API_URL || 'NOT SET');
-  }, [teacherId, selectedClassroom, teacherClassrooms, classroomAttendance]);
-
+  
 
   // Initialize AttendanceProcessor with current data
   const attendanceProcessor = useMemo(() => {
