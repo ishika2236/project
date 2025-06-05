@@ -546,7 +546,7 @@ const TeacherAttendanceDashboard = () => {
     if (teacherId) {
       dispatch(getClassroomsByTeacher(teacherId));
     }
-  }, [dispatch, teacherId]);
+  }, [dispatch, teacherId, classroomAttendance]);
 
   useEffect(() => {
     if (teacherClassrooms?.length > 0 && !selectedClassroom) {
