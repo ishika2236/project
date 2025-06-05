@@ -1,3 +1,246 @@
+// import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
+// import { Provider, useDispatch, useSelector } from 'react-redux';
+// import { 
+//   BarChart, 
+//   Bar, 
+//   XAxis, 
+//   YAxis, 
+//   CartesianGrid, 
+//   Tooltip, 
+//   Legend, 
+//   ResponsiveContainer,
+//   PieChart,
+//   Pie,
+//   Cell,
+//   LineChart,
+//   Line
+// } from 'recharts';
+// import { ChevronDown, ChevronUp, Download, Users, Clock, AlertTriangle, X } from 'lucide-react';
+// import { 
+//   getClassroomAttendance, 
+//   getTeacherAttendance,
+//   getDailyAttendanceReport 
+// } from '../../app/features/attendanceStats/attendanceStatsThunks';
+// import { getClassroomsByTeacher } from '../../app/features/classroom/classroomThunks';
+// // Lazy loaded components
+// const StudentDetailsModal = lazy(() => import('../../components/teacher/modals/StudentDetailsModal'));
+// const LowAttendanceAlert = lazy(() => import('../../components/teacher/modals/LowAttendanceAlert'));
+// const LateStudentsPanel = lazy(() => import('../../components/teacher/modals/LateStudentsPanel'));
+// import { useTheme } from '../../context/ThemeProvider';
+
+// // AttendanceProcessor class (you can import this from your separate file)
+// class AttendanceProcessor {
+//   constructor(attendanceData) {
+//     this.data = attendanceData;
+//     this.flattenedRecords = this.flattenData();
+//   }
+
+//   flattenData() {
+//     const flattened = [];
+//     this.data.forEach(classGroup => {
+//       classGroup.records.forEach(record => {
+//         flattened.push({
+//           ...record,
+//           className: classGroup.className,
+//           studentName: `${record.student.firstName} ${record.student.lastName}`,
+//           rollNumber: record.student.rollNumber,
+//           classDate: new Date(record.markedAt).toDateString(),
+//           classTime: new Date(record.markedAt).toLocaleTimeString(),
+//           isLate: this.isStudentLate(record)
+//         });
+//       });
+//     });
+//     return flattened;
+//   }
+
+//   isStudentLate(record) {
+//     const markedTime = new Date(record.markedAt);
+//     const classStartTime = new Date(record.class?.schedule?.startTime || record.markedAt);
+//     return markedTime > classStartTime;
+//   }
+
+//   getStudentSummary(rollNumber) {
+//     const studentRecords = this.flattenedRecords.filter(
+//       record => record.rollNumber === rollNumber
+//     );
+
+//     if (studentRecords.length === 0) {
+//       return { error: 'Student not found' };
+//     }
+
+//     const totalClasses = studentRecords.length;
+//     const presentClasses = studentRecords.filter(r => r.status === 'present').length;
+//     const absentClasses = studentRecords.filter(r => r.status === 'absent').length;
+//     const lateClasses = studentRecords.filter(r => r.isLate).length;
+//     const attendancePercentage = ((presentClasses / totalClasses) * 100).toFixed(2);
+
+//     return {
+//       studentName: studentRecords[0].studentName,
+//       rollNumber: rollNumber,
+//       totalClasses,
+//       presentClasses,
+//       absentClasses,
+//       lateClasses,
+//       attendancePercentage: parseFloat(attendancePercentage),
+//       records: studentRecords.sort((a, b) => new Date(b.markedAt) - new Date(a.markedAt))
+//     };
+//   }
+
+//   findLowAttendanceStudents(threshold = 75) {
+//     const studentStats = {};
+
+//     this.flattenedRecords.forEach(record => {
+//       const rollNumber = record.rollNumber;
+//       if (!studentStats[rollNumber]) {
+//         studentStats[rollNumber] = {
+//           studentName: record.studentName,
+//           rollNumber: rollNumber,
+//           totalClasses: 0,
+//           presentClasses: 0,
+//           absentClasses: 0,
+//           lateClasses: 0
+//         };
+//       }
+
+//       studentStats[rollNumber].totalClasses++;
+//       if (record.status === 'present') {
+//         studentStats[rollNumber].presentClasses++;
+//       } else {
+//         studentStats[rollNumber].absentClasses++;
+//       }
+//       if (record.isLate) {
+//         studentStats[rollNumber].lateClasses++;
+//       }
+//     });
+
+//     const lowAttendanceStudents = Object.values(studentStats)
+//       .map(student => ({
+//         ...student,
+//         attendancePercentage: ((student.presentClasses / student.totalClasses) * 100).toFixed(2)
+//       }))
+//       .filter(student => parseFloat(student.attendancePercentage) < threshold)
+//       .sort((a, b) => parseFloat(a.attendancePercentage) - parseFloat(b.attendancePercentage));
+
+//     return lowAttendanceStudents;
+//   }
+
+//   findConsecutivelyLateStudents(consecutiveDays = 3) {
+//     const studentRecords = {};
+    
+//     this.flattenedRecords.forEach(record => {
+//       const rollNumber = record.rollNumber;
+//       if (!studentRecords[rollNumber]) {
+//         studentRecords[rollNumber] = [];
+//       }
+//       studentRecords[rollNumber].push(record);
+//     });
+
+//     const consistentlyLateStudents = [];
+
+//     Object.entries(studentRecords).forEach(([rollNumber, records]) => {
+//       const sortedRecords = records.sort((a, b) => new Date(a.markedAt) - new Date(b.markedAt));
+      
+//       let consecutiveLateCount = 0;
+//       let maxConsecutiveLate = 0;
+//       let currentStreak = [];
+//       let longestStreak = [];
+
+//       sortedRecords.forEach(record => {
+//         if (record.isLate && record.status === 'present') {
+//           consecutiveLateCount++;
+//           currentStreak.push(record);
+//           maxConsecutiveLate = Math.max(maxConsecutiveLate, consecutiveLateCount);
+          
+//           if (consecutiveLateCount > longestStreak.length) {
+//             longestStreak = [...currentStreak];
+//           }
+//         } else {
+//           consecutiveLateCount = 0;
+//           currentStreak = [];
+//         }
+//       });
+
+//       if (maxConsecutiveLate >= consecutiveDays) {
+//         consistentlyLateStudents.push({
+//           studentName: records[0].studentName,
+//           rollNumber: rollNumber,
+//           maxConsecutiveLate: maxConsecutiveLate,
+//           longestLateStreak: longestStreak,
+//           totalLateClasses: records.filter(r => r.isLate).length,
+//           totalClasses: records.length
+//         });
+//       }
+//     });
+
+//     return consistentlyLateStudents.sort((a, b) => b.maxConsecutiveLate - a.maxConsecutiveLate);
+//   }
+
+//   getAttendanceStats(startDate = null, endDate = null) {
+//     let filteredRecords = this.flattenedRecords;
+
+//     if (startDate) {
+//       filteredRecords = filteredRecords.filter(record => 
+//         new Date(record.markedAt) >= new Date(startDate)
+//       );
+//     }
+
+//     if (endDate) {
+//       filteredRecords = filteredRecords.filter(record => 
+//         new Date(record.markedAt) <= new Date(endDate)
+//       );
+//     }
+
+//     const totalRecords = filteredRecords.length;
+//     const presentCount = filteredRecords.filter(r => r.status === 'present').length;
+//     const absentCount = filteredRecords.filter(r => r.status === 'absent').length;
+//     const lateCount = filteredRecords.filter(r => r.isLate).length;
+
+//     return {
+//       totalRecords,
+//       presentCount,
+//       absentCount,
+//       lateCount,
+//       attendanceRate: ((presentCount / totalRecords) * 100).toFixed(2),
+//       lateRate: ((lateCount / totalRecords) * 100).toFixed(2),
+//       dateRange: {
+//         start: startDate,
+//         end: endDate
+//       }
+//     };
+//   }
+
+//   exportToCSV() {
+//     const headers = [
+//       'Student Name', 'Roll Number', 'Class Name', 'Date', 'Time', 
+//       'Status', 'Late', 'Face Recognized', 'Marked By'
+//     ];
+    
+//     const csvData = [headers];
+    
+//     this.flattenedRecords.forEach(record => {
+//       csvData.push([
+//         record.studentName,
+//         record.rollNumber,
+//         record.className,
+//         record.classDate,
+//         record.classTime,
+//         record.status,
+//         record.isLate ? 'Yes' : 'No',
+//         record.faceRecognized ? 'Yes' : 'No',
+//         record.markedBy
+//       ]);
+//     });
+    
+//     return csvData.map(row => row.join(',')).join('\n');
+//   }
+// }
+
+// // Loading component
+// const LoadingSpinner = () => (
+//   <div className="flex justify-center items-center h-64">
+//     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+//   </div>
+// );
 import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { 
@@ -200,8 +443,8 @@ class AttendanceProcessor {
       presentCount,
       absentCount,
       lateCount,
-      attendanceRate: ((presentCount / totalRecords) * 100).toFixed(2),
-      lateRate: ((lateCount / totalRecords) * 100).toFixed(2),
+      attendanceRate: totalRecords > 0 ? ((presentCount / totalRecords) * 100).toFixed(2) : '0',
+      lateRate: totalRecords > 0 ? ((lateCount / totalRecords) * 100).toFixed(2) : '0',
       dateRange: {
         start: startDate,
         end: endDate
