@@ -543,10 +543,35 @@ const TeacherAttendanceDashboard = () => {
   }, [attendanceProcessor]);
 
   useEffect(() => {
+    console.log('Teacher ID check:', teacherId);
     if (teacherId) {
       dispatch(getClassroomsByTeacher(teacherId));
+    } else {
+      console.warn('No teacherId available');
     }
-  }, [dispatch, teacherId, classroomAttendance]);
+  }, [dispatch, teacherId]);
+  
+  useEffect(() => {
+    console.log('Classroom selection effect:', {
+      teacherClassrooms: teacherClassrooms?.length,
+      selectedClassroom,
+      isLoading
+    });
+    
+    if (teacherClassrooms?.length > 0 && !selectedClassroom && !isLoading) {
+      const firstClassroomId = teacherClassrooms[0]._id;
+      console.log('Setting first classroom:', firstClassroomId);
+      setSelectedClassroom(firstClassroomId);
+      dispatch(getClassroomAttendance(firstClassroomId));
+    }
+  }, [teacherClassrooms, dispatch, selectedClassroom, isLoading]);
+  useEffect(() => {
+    if (selectedClassroom && !isLoading) {
+      console.log('Refreshing attendance data for classroom:', selectedClassroom);
+      dispatch(getClassroomAttendance(selectedClassroom));
+    }
+  }, [selectedClassroom, dispatch]);
+  
 
   useEffect(() => {
     if (teacherClassrooms?.length > 0 && !selectedClassroom) {
@@ -588,6 +613,28 @@ const TeacherAttendanceDashboard = () => {
   if (isLoading) {
     return <LoadingSpinner />;
   }
+  if (!classroomAttendance) {
+    return (
+      <div className={`p-6 ${currentTheme.background} min-h-screen`}>
+        <div className={`${currentTheme.card} p-4`}>
+          <p className={`${currentTheme.secondaryText}`}>
+            Waiting for attendance data to load...
+          </p>
+          <button 
+            onClick={() => selectedClassroom && dispatch(getClassroomAttendance(selectedClassroom))}
+            className={`mt-2 ${currentTheme.button.primary}`}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }console.log('Pre-processedData check:', {
+    classroomAttendance,
+    recordsByClass: classroomAttendance?.recordsByClass,
+    attendanceProcessor,
+    processedData
+  });
   {console.log(processedData)}
   if (!processedData) {
     return (
