@@ -113,7 +113,7 @@ CLOUDINARY_API_SECRET=...
 
 You can create accounts manually or use sample logins:
 
-- Admin: `admin@gmail.com` / `123456Aa`
+- Admin: `admin@mail.com` / `123456Aa`
 - Teacher: `testteacher@gmail.com` / `Aa123456`
 - Student: `test123@gmail.com` / `Aa123456`
 
